@@ -19,22 +19,19 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "TODO - Your title"
-abbrev: "TODO - Abbreviation"
+title: "Scalable MLS"
+abbrev: "smls"
 category: info
 
-docname: draft-todo-yourname-protocol-latest
+docname: draft-kiefer-scalable-mls-latest
 submissiontype: IETF  # also: "independent", "IAB", or "IRTF"
 number:
 date:
-consensus: true
+consensus: false
 v: 3
-area: AREA
-workgroup: WG Working Group
-keyword:
- - next generation
- - unicorn
- - sparkling distributed ledger
+area: Security
+workgroup: MLSWG
+keyword: Internet-Draft
 venue:
   group: WG
   type: Working Group
@@ -44,19 +41,26 @@ venue:
   latest: https://example.com/LATEST
 
 author:
- -
-    fullname: Your Name Here
-    organization: Your Organization Here
-    email: your.email@example.com
+ -  ins: F. Kiefer
+    fullname: Franziskus Kiefer
+    organization: Cryspen
+    email: franziskuskiefer@gmail.com
+ -  ins: K. Bhargavan
+    fullname: Karthikeyan Bhargavan
+    organization: Cryspen
+    email: karthik.bhargavan@gmail.com
 
 normative:
 
 informative:
+  mls-protocol:
+    target: https://datatracker.ietf.org/doc/draft-ietf-mls-protocol/](https://datatracker.ietf.org/doc/draft-ietf-mls-protocol/
+    title: The Messaging Layer Security (MLS) Protocol
 
 
 --- abstract
 
-TODO Abstract
+This document describes a scalable variant of the MLS protocol.
 
 
 --- middle
