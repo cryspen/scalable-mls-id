@@ -2,10 +2,10 @@
 
 
 
-MLSWG                                                          F. Kiefer
+Network Working Group                                          F. Kiefer
 Internet-Draft                                              K. Bhargavan
 Intended status: Informational                                   Cryspen
-Expires: 13 January 2024                                    12 July 2023
+Expires: 14 January 2024                                    13 July 2023
 
 
                               Scalable MLS
@@ -46,7 +46,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 13 January 2024.
+   This Internet-Draft will expire on 14 January 2024.
 
 Copyright Notice
 
@@ -68,15 +68,19 @@ Table of Contents
    2.  Conventions and Definitions
    3.  Expandable Tree
      3.1.  Verifying Tree Validity
-       3.1.1.  Commit
+       3.1.1.  Joining a Group with a Welcome
+       3.1.2.  Commit
      3.2.  Proof of Membership
      3.3.  Verify Expandable Tree
-   4.  Expandable Tree Extension
-   5.  Security Considerations
-   6.  IANA Considerations
-   7.  References
-     7.1.  Normative References
-     7.2.  Informative References
+   4.  Receiver specific Commits
+   5.  Retrieving the Expandable Tree
+     5.1.  Expandable Tree Extension
+   6.  Security Considerations
+     6.1.  Comparison with RFC MLS
+   7.  IANA Considerations
+   8.  References
+     8.1.  Normative References
+     8.2.  Informative References
    Acknowledgments
    Authors' Addresses
 
@@ -112,6 +116,19 @@ Table of Contents
 
    TODO: Add tree pictures examples for explanation
 
+             R
+            /
+           P
+         __|__
+        /     \
+       D       S
+      / \     / \
+    ... ... ... ...
+    /
+   L
+
+                         Figure 1: Expandable tree
+
 3.1.  Verifying Tree Validity
 
    A client that has an expandable tree can not do all the checks that a
@@ -119,23 +136,41 @@ Table of Contents
    performed on tree modifications.  In particular the validation of
    commits and welcome packages are modified compared to [mls-protocol].
 
-3.1.1.  Commit
+3.1.1.  Joining a Group with a Welcome
 
    When a new member joins the group with a Welcome message
    (Section 12.4.3.1. [mls-protocol]) without the ratchet tree extension
    the checks are updated as follows.
 
+   1.  Verify the GroupInfo
+
+       1.  signature
+
+       2.  confirmation tag
+
+       3.  tree hash
+
+   2.  Verify the sender's membership (see Section 3.2).
+
+   3.  Check the own direct path to the root (see Section 3.3).
+
+   4.  Do _not_ verify leaves in the tree.
+
+3.1.2.  Commit
+
+   When a member receives a Commit message (Section 12.4.2.
+   [mls-protocol]) the checks are updated as follows.
+
    1.  Verify the sender's membership (see Section 3.2).
 
-   2.  Check the own direct path to the root.
-
-   3.  Do _not_ verify leaves in the tree.
+   2.  If the own path changed, check it.
 
 3.2.  Proof of Membership
 
    To verify the group membership of the sender of a commit, the
-   receiver with an expandable tree checks the sender's leaf signature
-   as well as the correctness of the tree as described in Section 3.3.
+   receiver with an expandable tree checks the sender's leaf (see
+   Section 7.3 [mls-protocol]), as well as the correctness of the tree
+   as described in Section 3.3.
 
 3.3.  Verify Expandable Tree
 
@@ -146,11 +181,26 @@ Table of Contents
    on the root node is computed similarly, using the tree_hash values
    for all nodes where the client does not have the full nodes.
 
-4.  Expandable Tree Extension
+   Check that the encryption keys of all received nodes are unique.
+
+4.  Receiver specific Commits
+
+   TODO: describe server stripping commit
+
+5.  Retrieving the Expandable Tree
 
    The ExpandableTree is provided by the delivery service to the client
    on request.  Alternatively, a client can send the ExpandableTree as
-   extension in Commit and Welcome messages.
+   extension in Commit and Welcome messages.  See Section 5.1 for
+   details on the expandable tree extension.
+
+   In particular, when joining a group, after receiving a Welcome
+   message, the client queries the delivery service for the expandable
+   tree.  The delivery service must keep track of the group's state
+   (tree) and assemble the ExpandableTree when requested for a given
+   sender and receiver.
+
+5.1.  Expandable Tree Extension
 
    enum {
      reserved(0),
@@ -177,17 +227,28 @@ Table of Contents
      uint32 num_nodes;
    } ExpandableTree;
 
-5.  Security Considerations
+6.  Security Considerations
 
    TODO Security
 
-6.  IANA Considerations
+6.1.  Comparison with RFC MLS
+
+   The main change compared to the protocol as specified in
+   [mls-protocol] is that the receiver of a Welcome or Commit message,
+   with an expandable tree, can not perform all checks as mandated in
+   [mls-protocol].
+
+   In particular the following checks are omitted.
+
+   *  a
+
+7.  IANA Considerations
 
    This document has no IANA actions.
 
-7.  References
+8.  References
 
-7.1.  Normative References
+8.1.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
@@ -198,7 +259,7 @@ Table of Contents
               2119 Key Words", BCP 14, RFC 8174, DOI 10.17487/RFC8174,
               May 2017, <https://www.rfc-editor.org/rfc/rfc8174>.
 
-7.2.  Informative References
+8.2.  Informative References
 
    [mls-protocol]
               "The Messaging Layer Security (MLS) Protocol", n.d.,
