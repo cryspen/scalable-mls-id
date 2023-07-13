@@ -30,7 +30,7 @@ date:
 consensus: false
 v: 3
 area: Security
-workgroup: MLSWG
+workgroup: Network Working Group
 keyword: Internet-Draft
 venue:
   group: WG
@@ -94,6 +94,20 @@ struct {
 
 TODO: Add tree pictures examples for explanation
 
+~~~ ascii-art
+          R
+         /
+        P
+      __|__
+     /     \
+    D       S
+   / \     / \
+ ... ... ... ...
+ /
+L
+~~~
+{: #expandable-tree-1 title="Expandable tree" }
+
 ## Verifying Tree Validity
 A client that has an expandable tree can not do all the checks that a client with
 the full tree can do.
@@ -101,19 +115,30 @@ We therefore update the checks performed on tree modifications.
 In particular the validation of commits and welcome packages are modified compared
 to {{mls-protocol}}.
 
-### Commit
+### Joining a Group with a Welcome
 When a new member joins the group with a `Welcome` message
 (Section 12.4.3.1. {{mls-protocol}}) without the ratchet tree extension the checks
 are updated as follows.
 
+1. Verify the `GroupInfo`
+    1. signature
+    2. confirmation tag
+    3. tree hash
+2. Verify the sender's membership (see {{proof-of-membership}}).
+3. Check the own direct path to the root (see {{verify-expandable-tree}}).
+4. Do *not* verify leaves in the tree.
+
+### Commit
+When a member receives a `Commit` message (Section 12.4.2. {{mls-protocol}})
+the checks are updated as follows.
+
 1. Verify the sender's membership (see {{proof-of-membership}}).
-2. Check the own direct path to the root.
-3. Do *not* verify leaves in the tree.
+2. If the own path changed, check it.
 
 ## Proof of Membership
 To verify the group membership of the sender of a commit, the receiver with an
-expandable tree checks the sender's leaf signature as well as the correctness of
-the tree as described in {{verify-expandable-tree}}.
+expandable tree checks the sender's leaf (see Section 7.3 {{mls-protocol}}), as
+well as the correctness of the tree as described in {{verify-expandable-tree}}.
 
 ## Verify Expandable Tree
 To verify the correctness of an expandable tree the client checks its tree hash
@@ -123,10 +148,25 @@ parent hash value on each node by using `original_tree_hash` of the co-path node
 The tree hash on the root node is computed similarly, using the `tree_hash` values
 for all nodes where the client does not have the full nodes.
 
-# Expandable Tree Extension
+Check that the encryption keys of all received nodes are unique.
+
+# Receiver specific Commits
+
+TODO: describe server stripping commit
+
+
+# Retrieving the Expandable Tree
 The `ExpandableTree` is provided by the delivery service to the client on request.
 Alternatively, a client can send the `ExpandableTree` as extension in `Commit`
 and `Welcome` messages.
+See {{expandable-tree-extension}} for details on the expandable tree extension.
+
+In particular, when joining a group, after receiving a `Welcome` message, the
+client queries the delivery service for the expandable tree.
+The delivery service must keep track of the group's state (tree) and assemble the
+`ExpandableTree` when requested for a given sender and receiver.
+
+## Expandable Tree Extension
 
 ~~~tls
 enum {
@@ -159,6 +199,14 @@ struct {
 
 TODO Security
 
+## Comparison with RFC MLS
+The main change compared to the protocol as specified in {{mls-protocol}} is that
+the receiver of a `Welcome` or `Commit` message, with an expandable tree, can not
+perform all checks as mandated in {{mls-protocol}}.
+
+In particular the following checks are omitted.
+
+* a
 
 # IANA Considerations
 
