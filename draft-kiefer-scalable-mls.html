@@ -1052,7 +1052,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Kiefer &amp; Bhargavan</td>
-<td class="center">Expires 14 January 2024</td>
+<td class="center">Expires 15 January 2024</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-kiefer-scalable-mls-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2023-07-13" class="published">13 July 2023</time>
+<time datetime="2023-07-14" class="published">14 July 2023</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2024-01-14">14 January 2024</time></dd>
+<dd class="expires"><time datetime="2024-01-15">15 January 2024</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1123,7 +1123,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 14 January 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 15 January 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1187,7 +1187,13 @@ svg :is([fill="white"], [fill^="#fff"]) {
             <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-retrieving-the-expandable-t" class="internal xref">Retrieving the Expandable Tree</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
-                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-expandable-tree-extension" class="internal xref">Expandable Tree Extension</a></p>
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-expandable-tree-from-the-de" class="internal xref">Expandable Tree from the Deliver Service</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
+                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-expandable-tree-from-the-se" class="internal xref">Expandable Tree from the Sender</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
+                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-expandable-tree-3" class="internal xref">Expandable Tree</a></p>
 </li>
             </ul>
 </li>
@@ -1264,7 +1270,7 @@ struct {
 </pre><a href="#section-3-3" class="pilcrow">¶</a>
 </div>
 <p id="section-3-4">TODO: Add tree pictures examples for explanation<a href="#section-3-4" class="pilcrow">¶</a></p>
-<span id="name-expandable-tree-2"></span><div id="expandable-tree-1">
+<span id="name-expandable-tree-2"></span><div id="expandable-tree-figure">
 <figure id="figure-1">
         <div class="alignLeft art-ascii-art art-text artwork" id="section-3-5.1">
 <pre>
@@ -1371,7 +1377,14 @@ for all nodes where the client does not have the full nodes.<a href="#section-3.
       <h2 id="name-receiver-specific-commits">
 <a href="#section-4" class="section-number selfRef">4. </a><a href="#name-receiver-specific-commits" class="section-name selfRef">Receiver specific Commits</a>
       </h2>
-<p id="section-4-1">TODO: describe server stripping commit<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-1">To reduce the size of <code>Commit</code> messages, especially in large, sparse trees, the
+delivery service can strip unnecessary parts of the <code>Commit</code> when using the public
+message type for <code>MLSMessage</code>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">The structure of the message stays the same but the server removes all <code>HPKECiphertext</code>
+from the <code>encrypted_path_secret</code> in the commit's <code>UpdatePath</code>, if present, where
+the <code>encryption_key</code> does not match the receiver's encryption key.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">This breaks the signature on the <code>FramedContent</code> such that this <span class="bcp14">MUST NOT</span> be checked
+by the receiver of such a commit.<a href="#section-4-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="retrieving-the-expandable-tree">
@@ -1382,17 +1395,37 @@ for all nodes where the client does not have the full nodes.<a href="#section-3.
 <p id="section-5-1">The <code>ExpandableTree</code> is provided by the delivery service to the client on request.
 Alternatively, a client can send the <code>ExpandableTree</code> as extension in <code>Commit</code>
 and <code>Welcome</code> messages.
-See <a href="#expandable-tree-extension" class="auto internal xref">Section 5.1</a> for details on the expandable tree extension.<a href="#section-5-1" class="pilcrow">¶</a></p>
-<p id="section-5-2">In particular, when joining a group, after receiving a <code>Welcome</code> message, the
+See <a href="#expandable-tree" class="auto internal xref">Section 3</a> for details on the expandable tree extension.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<div id="expandable-tree-from-the-deliver-service">
+<section id="section-5.1">
+        <h3 id="name-expandable-tree-from-the-de">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-expandable-tree-from-the-de" class="section-name selfRef">Expandable Tree from the Deliver Service</a>
+        </h3>
+<p id="section-5.1-1">In particular, when joining a group, after receiving a <code>Welcome</code> message, the
 client queries the delivery service for the expandable tree.
 The delivery service must keep track of the group's state (tree) and assemble the
-<code>ExpandableTree</code> when requested for a given sender and receiver.<a href="#section-5-2" class="pilcrow">¶</a></p>
-<div id="expandable-tree-extension">
-<section id="section-5.1">
-        <h3 id="name-expandable-tree-extension">
-<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-expandable-tree-extension" class="section-name selfRef">Expandable Tree Extension</a>
+<code>ExpandableTree</code> when requested for a given sender and receiver.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">When receiving a <code>Commit</code> message, the client queries the delivery service for
+the sender's direct path to check its membership.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="expandable-tree-from-the-sender">
+<section id="section-5.2">
+        <h3 id="name-expandable-tree-from-the-se">
+<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-expandable-tree-from-the-se" class="section-name selfRef">Expandable Tree from the Sender</a>
         </h3>
-<div class="lang-tls sourcecode" id="section-5.1-1">
+<p id="section-5.2-1">When the deliver service does not provide the necessary endpoints to query the
+expandable trees, the sender can include it into the <code>GroupInfo</code> extensions in
+the <code>Welcome</code> message.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
+<p id="section-5.2-2">TODO: There no place to put extensions for <code>Commit</code>s.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="expandable-tree-1">
+<section id="section-5.3">
+        <h3 id="name-expandable-tree-3">
+<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-expandable-tree-3" class="section-name selfRef">Expandable Tree</a>
+        </h3>
+<div class="lang-tls sourcecode" id="section-5.3-1">
 <pre>
 enum {
   reserved(0),
@@ -1418,7 +1451,7 @@ struct {
   ExpandableNode nodes&lt;V&gt;;
   uint32 num_nodes;
 } ExpandableTree;
-</pre><a href="#section-5.1-1" class="pilcrow">¶</a>
+</pre><a href="#section-5.3-1" class="pilcrow">¶</a>
 </div>
 </section>
 </div>
@@ -1440,7 +1473,15 @@ the receiver of a <code>Welcome</code> or <code>Commit</code> message, with an e
 perform all checks as mandated in <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
 <p id="section-6.1-2">In particular the following checks are omitted.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6.1-3.1">a<a href="#section-6.1-3.1" class="pilcrow">¶</a>
+<li class="normal" id="section-6.1-3.1">Check for uniqueness of all encryption and signature keys.
+Because not all keys are known, the check can only be performed on the known keys.<a href="#section-6.1-3.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-6.1-3.2">Check validity of leaf nodes in the tree when joining a group.<a href="#section-6.1-3.2" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-6.1-4">When using receiver specific commits the following checks are omitted in addition.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.1-5.1">Check the signature on the <code>FramedContent</code>.<a href="#section-6.1-5.1" class="pilcrow">¶</a>
 </li>
         </ul>
 </section>
