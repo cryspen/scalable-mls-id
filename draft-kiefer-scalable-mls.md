@@ -106,7 +106,7 @@ TODO: Add tree pictures examples for explanation
  /
 L
 ~~~
-{: #expandable-tree-1 title="Expandable tree" }
+{: #expandable-tree-figure title="Expandable tree" }
 
 ## Verifying Tree Validity
 A client that has an expandable tree can not do all the checks that a client with
@@ -152,21 +152,42 @@ Check that the encryption keys of all received nodes are unique.
 
 # Receiver specific Commits
 
-TODO: describe server stripping commit
+To reduce the size of `Commit` messages, especially in large, sparse trees, the
+delivery service can strip unnecessary parts of the `Commit` when using the public
+message type for `MLSMessage`.
 
+The structure of the message stays the same but the server removes all `HPKECiphertext`
+from the `encrypted_path_secret` in the commit's `UpdatePath`, if present, where
+the `encryption_key` does not match the receiver's encryption key.
+
+This breaks the signature on the `FramedContent` such that this MUST NOT be checked
+by the receiver of such a commit.
 
 # Retrieving the Expandable Tree
 The `ExpandableTree` is provided by the delivery service to the client on request.
 Alternatively, a client can send the `ExpandableTree` as extension in `Commit`
 and `Welcome` messages.
-See {{expandable-tree-extension}} for details on the expandable tree extension.
+See {{expandable-tree}} for details on the expandable tree extension.
+
+## Expandable Tree from the Deliver Service
 
 In particular, when joining a group, after receiving a `Welcome` message, the
 client queries the delivery service for the expandable tree.
 The delivery service must keep track of the group's state (tree) and assemble the
 `ExpandableTree` when requested for a given sender and receiver.
 
-## Expandable Tree Extension
+When receiving a `Commit` message, the client queries the delivery service for
+the sender's direct path to check its membership.
+
+## Expandable Tree from the Sender
+
+When the deliver service does not provide the necessary endpoints to query the
+expandable trees, the sender can include it into the `GroupInfo` extensions in
+the `Welcome` message.
+
+TODO: There no place to put extensions for `Commit`s.
+
+## Expandable Tree
 
 ~~~tls
 enum {
@@ -206,7 +227,13 @@ perform all checks as mandated in {{mls-protocol}}.
 
 In particular the following checks are omitted.
 
-* a
+* Check for uniqueness of all encryption and signature keys.
+Because not all keys are known, the check can only be performed on the known keys.
+* Check validity of leaf nodes in the tree when joining a group.
+
+When using receiver specific commits the following checks are omitted in addition.
+
+* Check the signature on the `FramedContent`.
 
 # IANA Considerations
 
