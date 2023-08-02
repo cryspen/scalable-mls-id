@@ -216,9 +216,28 @@ struct {
 } ExpandableTree;
 ~~~
 
+## Committing with an expandable Tree
+
+TODO: how to get from the expandable tree to the full tree
+
+- check that full tree is consistent with expandable tree
+- do all checks in Welcome
+
+### Maintaining state
+
+TODO
+
+- throw away state and stay in expandable trees
+- keep the full tree and operate in full MLS after this point
+
 # Security Considerations
 
 TODO Security
+
+- public keys only used when committing, at this point we have the full tree
+- own path secrets
+- proposal validation issues
+  - can't check double join
 
 ## Comparison with RFC MLS
 The main change compared to the protocol as specified in {{mls-protocol}} is that
