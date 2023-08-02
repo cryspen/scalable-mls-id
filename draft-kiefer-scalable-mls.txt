@@ -5,7 +5,7 @@
 Network Working Group                                          F. Kiefer
 Internet-Draft                                              K. Bhargavan
 Intended status: Informational                                   Cryspen
-Expires: 15 January 2024                                    14 July 2023
+Expires: 3 February 2024                                   2 August 2023
 
 
                               Scalable MLS
@@ -46,7 +46,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 15 January 2024.
+   This Internet-Draft will expire on 3 February 2024.
 
 Copyright Notice
 
@@ -77,6 +77,8 @@ Table of Contents
      5.1.  Expandable Tree from the Deliver Service
      5.2.  Expandable Tree from the Sender
      5.3.  Expandable Tree
+     5.4.  Committing with an expandable Tree
+       5.4.1.  Maintaining state
    6.  Security Considerations
      6.1.  Comparison with RFC MLS
    7.  IANA Considerations
@@ -252,9 +254,34 @@ Table of Contents
      uint32 num_nodes;
    } ExpandableTree;
 
+5.4.  Committing with an expandable Tree
+
+   TODO: how to get from the expandable tree to the full tree
+
+   *  check that full tree is consistent with expandable tree
+
+   *  do all checks in Welcome
+
+5.4.1.  Maintaining state
+
+   TODO
+
+   *  throw away state and stay in expandable trees
+
+   *  keep the full tree and operate in full MLS after this point
+
 6.  Security Considerations
 
    TODO Security
+
+   *  public keys only used when committing, at this point we have the
+      full tree
+
+   *  own path secrets
+
+   *  proposal validation issues
+
+      -  can't check double join
 
 6.1.  Comparison with RFC MLS
 
