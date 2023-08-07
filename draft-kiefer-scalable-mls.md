@@ -157,26 +157,13 @@ for all nodes where the client does not have the full nodes.
 
 Check that the encryption keys of all received nodes are unique.
 
-# Receiver specific Commits
-
-To reduce the size of `Commit` messages, especially in large, sparse trees, the
-delivery service can strip unnecessary parts of the `Commit` when using the public
-message type for `MLSMessage`.
-
-The structure of the message stays the same but the server removes all `HPKECiphertext`
-from the `encrypted_path_secret` in the commit's `UpdatePath`, if present, where
-the `encryption_key` does not match the receiver's encryption key.
-
-This breaks the signature on the `FramedContent` such that this MUST NOT be checked
-by the receiver of such a commit.
-
-# Retrieving the Expandable Tree
+## Retrieving Expandable Tree Information
 The `ExpandableTree` is provided by the delivery service to the client on request.
-Alternatively, a client can send the `ExpandableTree` as extension in `Commit`
-and `Welcome` messages.
+Alternatively, a client can send the `ExpandableTree` as extension in `Welcome`
+messages.
 See {{expandable-tree}} for details on the expandable tree extension.
 
-## Expandable Tree from the Deliver Service
+### Expandable Tree from the Deliver Service
 
 In particular, when joining a group, after receiving a `Welcome` message, the
 client queries the delivery service for the expandable tree.
@@ -186,13 +173,11 @@ The delivery service must keep track of the group's state (tree) and assemble th
 When receiving a `Commit` message, the client queries the delivery service for
 the sender's direct path to check its membership.
 
-## Expandable Tree from the Sender
+### Expandable Tree from the Sender
 
-When the deliver service does not provide the necessary endpoints to query the
+When the delivery service does not provide the necessary endpoints to query the
 expandable trees, the sender can include it into the `GroupInfo` extensions in
 the `Welcome` message.
-
-TODO: There no place to put extensions for `Commit`s.
 
 ## Expandable Tree
 
@@ -251,6 +236,40 @@ tree again.
 
 If the client does not expect to commit regularly, only the expandable tree should
 be kept after a commit.
+
+# Receiver specific Commits
+
+To reduce the size of `Commit` messages, especially in large, sparse trees, the
+delivery service can strip unnecessary parts of the `Commit` when using the public
+message type for `MLSMessage`.
+
+The structure of the message stays the same but the server removes all `HPKECiphertext`
+from the `encrypted_path_secret` in the commit's `UpdatePath`, if present, where
+the `encryption_key` does not match the receiver's encryption key.
+
+This breaks the signature on the `FramedContent` such that this MUST NOT be checked
+by the receiver of such a commit.
+
+The delivery service sends an expandable commit `XCommit` message that is defined
+as follows.
+
+A new content type `xcommit(4)` is defined for `FramedContent`.
+
+~~~tls
+struct {
+  ExpandableNode nodes<V>;
+} XPath;
+
+struct {
+  ProposalOrRef proposal<V>;
+  optional<UpdatePath> path;
+  optional<XPath> sender_path;
+} XCommit;
+~~~
+
+Similar to checking expandable trees ({{verifying-expandable-trees}}) the receiver
+of an `XCommit` MUST verify the parent hash value on each node by using
+`original_tree_hash` of the co-path nodes, and the tree hash of the new tree.
 
 # Security Considerations
 
