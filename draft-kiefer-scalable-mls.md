@@ -53,9 +53,6 @@ author:
 normative:
 
 informative:
-  mls-protocol:
-    target: https://datatracker.ietf.org/doc/draft-ietf-mls-protocol/
-    title: The Messaging Layer Security (MLS) Protocol
 
 
 --- abstract
@@ -67,15 +64,25 @@ This document describes a scalable variant of the MLS protocol.
 
 # Introduction
 
-TODO Introduction
+This draft defines two modifications to the main MLS protocol in {{!RFC9420}}.
+
+First, it defines expandable trees in Section {{expandable-tree}} that allow
+retrieving and storing only the minimally required tree information to participate
+in an MLS group.
+An expandable tree can always be completed to a full MLS tree as described in
+Section {{committing-with-an-expandable-tree}}.
+
+Secondly, it defines receiver specific commits in Section {{receiver-specific-commits}}
+that reduce the data downloaded by clients for processing commits.
 
 
 # Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
 
+
 # Expandable Tree
-An expandable tree is a modified ratchet tree as described in {{mls-protocol}}.
+An expandable tree is a modified ratchet tree as described in {{!RFC9420}}.
 An expandable tree stores only the direct path from the member to the root plus
 additional information about the co-path.
 
@@ -113,11 +120,11 @@ A client that has an expandable tree can not do all the checks that a client wit
 the full tree can do.
 We therefore update the checks performed on tree modifications.
 In particular the validation of commits and welcome packages are modified compared
-to {{mls-protocol}}.
+to {{!RFC9420}}.
 
 ### Joining a Group with a Welcome
 When a new member joins the group with a `Welcome` message
-(Section 12.4.3.1. {{mls-protocol}}) without the ratchet tree extension the checks
+(Section 12.4.3.1. {{!RFC9420}}) without the ratchet tree extension the checks
 are updated as follows.
 
 1. Verify the `GroupInfo`
@@ -125,11 +132,11 @@ are updated as follows.
     2. confirmation tag
     3. tree hash
 2. Verify the sender's membership (see {{proof-of-membership}}).
-3. Check the own direct path to the root (see {{verify-expandable-tree}}).
+3. Check the own direct path to the root (see {{verifying-expandable-trees}}).
 4. Do *not* verify leaves in the tree.
 
 ### Commit
-When a member receives a `Commit` message (Section 12.4.2. {{mls-protocol}})
+When a member receives a `Commit` message (Section 12.4.2. {{!RFC9420}})
 the checks are updated as follows.
 
 1. Verify the sender's membership (see {{proof-of-membership}}).
@@ -137,10 +144,10 @@ the checks are updated as follows.
 
 ## Proof of Membership
 To verify the group membership of the sender of a commit, the receiver with an
-expandable tree checks the sender's leaf (see Section 7.3 {{mls-protocol}}), as
-well as the correctness of the tree as described in {{verify-expandable-tree}}.
+expandable tree checks the sender's leaf (see Section 7.3 {{!RFC9420}}), as
+well as the correctness of the tree as described in {{verifying-expandable-trees}}.
 
-## Verify Expandable Tree
+## Verifying Expandable Trees
 To verify the correctness of an expandable tree the client checks its tree hash
 and parent hashes.
 For each direct path from a leaf to the root that the client has, it checks the
@@ -218,17 +225,32 @@ struct {
 
 ## Committing with an expandable Tree
 
-TODO: how to get from the expandable tree to the full tree
+A client with an expandable *can not commit* because it doesn't know the necessary
+public keys in the tree to encrypt to.
+Therefore, if a client with an expandable tree wants to commit, it first has to
+retrieve the full tree from the server.
+In order ensure that the tree is the expanded version of the expandable tree known
+to the client, the client MUST perform the following checks:
 
-- check that full tree is consistent with expandable tree
-- do all checks in Welcome
+* Verify that the tree hash of the expandable tree and the full tree are equivalent.
+* Verify that all full nodes (`XNode`) in the expandable tree are equivalent to
+  the corresponding node in the full tree.
+* Perform all checks on the tree as if joining the group with a `Welcome` message (see Section 12.4.3.1. in {{!RFC9420}}).
+
+To retrieve the full tree, the delivery service must provide an end point,
+equivalent to the one used to retrieve the full tree for a new member that wants
+to join with a commit.
 
 ### Maintaining state
 
-TODO
+After committing, the client can decide to switch to regular MLS and process the
+full tree as described in {{!RFC9420}}.
+This will cause the client's performance to regress to the performance of regular
+MLS, but allows it to commit again without the necessity to download the full
+tree again.
 
-- throw away state and stay in expandable trees
-- keep the full tree and operate in full MLS after this point
+If the client does not expect to commit regularly, only the expandable tree should
+be kept after a commit.
 
 # Security Considerations
 
@@ -240,9 +262,9 @@ TODO Security
   - can't check double join
 
 ## Comparison with RFC MLS
-The main change compared to the protocol as specified in {{mls-protocol}} is that
+The main change compared to the protocol as specified in {{!RFC9420}} is that
 the receiver of a `Welcome` or `Commit` message, with an expandable tree, can not
-perform all checks as mandated in {{mls-protocol}}.
+perform all checks as mandated in {{!RFC9420}}.
 
 In particular the following checks are omitted.
 
