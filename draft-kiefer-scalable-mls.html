@@ -10,18 +10,18 @@
 <meta content="
        This document describes a scalable variant of the MLS protocol. 
     " name="description">
-<meta content="xml2rfc 3.17.4" name="generator">
+<meta content="xml2rfc 3.17.5" name="generator">
 <meta content="Internet-Draft" name="keyword">
 <meta content="draft-kiefer-scalable-mls-latest" name="ietf.draft">
 <!-- Generator version information:
-  xml2rfc 3.17.4
+  xml2rfc 3.17.5
     Python 3.11.4
     ConfigArgParse 1.5.3
     google-i18n-address 3.1.0
     intervaltree 3.1.0
     Jinja2 3.1.2
     lxml 4.9.3
-    platformdirs 3.9.1
+    platformdirs 3.10.0
     pycountry 22.3.5
     PyYAML 6.0
     requests 2.31.0
@@ -1052,7 +1052,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Kiefer &amp; Bhargavan</td>
-<td class="center">Expires 3 February 2024</td>
+<td class="center">Expires 8 February 2024</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-kiefer-scalable-mls-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2023-08-02" class="published">2 August 2023</time>
+<time datetime="2023-08-07" class="published">7 August 2023</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2024-02-03">3 February 2024</time></dd>
+<dd class="expires"><time datetime="2024-02-08">8 February 2024</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1123,7 +1123,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 3 February 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 8 February 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1176,7 +1176,29 @@ svg :is([fill="white"], [fill^="#fff"]) {
                 <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-proof-of-membership" class="internal xref">Proof of Membership</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
-                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-verify-expandable-tree" class="internal xref">Verify Expandable Tree</a></p>
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-verifying-expandable-trees" class="internal xref">Verifying Expandable Trees</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4">
+                <p id="section-toc.1-1.3.2.4.1"><a href="#section-3.4" class="auto internal xref">3.4</a>.  <a href="#name-retrieving-expandable-tree-" class="internal xref">Retrieving Expandable Tree Information</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4.2.1">
+                    <p id="section-toc.1-1.3.2.4.2.1.1"><a href="#section-3.4.1" class="auto internal xref">3.4.1</a>.  <a href="#name-expandable-tree-from-the-de" class="internal xref">Expandable Tree from the Deliver Service</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.4.2.2">
+                    <p id="section-toc.1-1.3.2.4.2.2.1"><a href="#section-3.4.2" class="auto internal xref">3.4.2</a>.  <a href="#name-expandable-tree-from-the-se" class="internal xref">Expandable Tree from the Sender</a></p>
+</li>
+                </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.5">
+                <p id="section-toc.1-1.3.2.5.1"><a href="#section-3.5" class="auto internal xref">3.5</a>.  <a href="#name-expandable-tree-3" class="internal xref">Expandable Tree</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.6">
+                <p id="section-toc.1-1.3.2.6.1"><a href="#section-3.6" class="auto internal xref">3.6</a>.  <a href="#name-committing-with-an-expandab" class="internal xref">Committing with an expandable Tree</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.6.2.1">
+                    <p id="section-toc.1-1.3.2.6.2.1.1"><a href="#section-3.6.1" class="auto internal xref">3.6.1</a>.  <a href="#name-maintaining-state" class="internal xref">Maintaining state</a></p>
+</li>
+                </ul>
 </li>
             </ul>
 </li>
@@ -1184,54 +1206,24 @@ svg :is([fill="white"], [fill^="#fff"]) {
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-receiver-specific-commits" class="internal xref">Receiver specific Commits</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
-            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-retrieving-the-expandable-t" class="internal xref">Retrieving the Expandable Tree</a></p>
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
-                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-expandable-tree-from-the-de" class="internal xref">Expandable Tree from the Deliver Service</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.2">
-                <p id="section-toc.1-1.5.2.2.1"><a href="#section-5.2" class="auto internal xref">5.2</a>.  <a href="#name-expandable-tree-from-the-se" class="internal xref">Expandable Tree from the Sender</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.3">
-                <p id="section-toc.1-1.5.2.3.1"><a href="#section-5.3" class="auto internal xref">5.3</a>.  <a href="#name-expandable-tree-3" class="internal xref">Expandable Tree</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4">
-                <p id="section-toc.1-1.5.2.4.1"><a href="#section-5.4" class="auto internal xref">5.4</a>.  <a href="#name-committing-with-an-expandab" class="internal xref">Committing with an expandable Tree</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.4.2.1">
-                    <p id="section-toc.1-1.5.2.4.2.1.1"><a href="#section-5.4.1" class="auto internal xref">5.4.1</a>.  <a href="#name-maintaining-state" class="internal xref">Maintaining state</a></p>
-</li>
-                </ul>
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-comparison-with-rfc-mls" class="internal xref">Comparison with RFC MLS</a></p>
 </li>
             </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
-            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
-                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-comparison-with-rfc-mls" class="internal xref">Comparison with RFC MLS</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
-            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
-            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-references" class="internal xref">References</a></p>
-<ul class="compact toc ulBare ulEmpty">
-<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
-                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
-</li>
-              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
-                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
-</li>
-            </ul>
+            <p id="section-toc.1-1.8.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
-            <p id="section-toc.1-1.9.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
-</li>
-          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
-            <p id="section-toc.1-1.10.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+            <p id="section-toc.1-1.9.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
 </li>
         </ul>
 </nav>
@@ -1242,7 +1234,14 @@ svg :is([fill="white"], [fill^="#fff"]) {
       <h2 id="name-introduction">
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
-<p id="section-1-1">TODO Introduction<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-1">This draft defines two modifications to the main MLS protocol in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">First, it defines expandable trees in Section <a href="#expandable-tree" class="auto internal xref">Section 3</a> that allow
+retrieving and storing only the minimally required tree information to participate
+in an MLS group.
+An expandable tree can always be completed to a full MLS tree as described in
+Section <a href="#committing-with-an-expandable-tree" class="auto internal xref">Section 3.6</a>.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">Secondly, it defines receiver specific commits in Section <a href="#receiver-specific-commits" class="auto internal xref">Section 4</a>
+that reduce the data downloaded by clients for processing commits.<a href="#section-1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="conventions-and-definitions">
@@ -1261,7 +1260,7 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
       <h2 id="name-expandable-tree">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-expandable-tree" class="section-name selfRef">Expandable Tree</a>
       </h2>
-<p id="section-3-1">An expandable tree is a modified ratchet tree as described in <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>.
+<p id="section-3-1">An expandable tree is a modified ratchet tree as described in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.
 An expandable tree stores only the direct path from the member to the root plus
 additional information about the co-path.<a href="#section-3-1" class="pilcrow">¶</a></p>
 <p id="section-3-2">In particular, a list of <code>Hashes</code> are stored for the member's co-path, containing
@@ -1307,14 +1306,14 @@ L
 the full tree can do.
 We therefore update the checks performed on tree modifications.
 In particular the validation of commits and welcome packages are modified compared
-to <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+to <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
 <div id="joining-a-group-with-a-welcome">
 <section id="section-3.1.1">
           <h4 id="name-joining-a-group-with-a-welc">
 <a href="#section-3.1.1" class="section-number selfRef">3.1.1. </a><a href="#name-joining-a-group-with-a-welc" class="section-name selfRef">Joining a Group with a Welcome</a>
           </h4>
 <p id="section-3.1.1-1">When a new member joins the group with a <code>Welcome</code> message
-(Section 12.4.3.1. <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>) without the ratchet tree extension the checks
+(Section 12.4.3.1. <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>) without the ratchet tree extension the checks
 are updated as follows.<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-3.1.1-2">
 <li id="section-3.1.1-2.1">
@@ -1330,7 +1329,7 @@ are updated as follows.<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-3.1.1-2.2">Verify the sender's membership (see <a href="#proof-of-membership" class="auto internal xref">Section 3.2</a>).<a href="#section-3.1.1-2.2" class="pilcrow">¶</a>
 </li>
-            <li id="section-3.1.1-2.3">Check the own direct path to the root (see <a href="#verify-expandable-tree" class="auto internal xref">Section 3.3</a>).<a href="#section-3.1.1-2.3" class="pilcrow">¶</a>
+            <li id="section-3.1.1-2.3">Check the own direct path to the root (see <a href="#verifying-expandable-trees" class="auto internal xref">Section 3.3</a>).<a href="#section-3.1.1-2.3" class="pilcrow">¶</a>
 </li>
             <li id="section-3.1.1-2.4">Do <em>not</em> verify leaves in the tree.<a href="#section-3.1.1-2.4" class="pilcrow">¶</a>
 </li>
@@ -1342,7 +1341,7 @@ are updated as follows.<a href="#section-3.1.1-1" class="pilcrow">¶</a></p>
           <h4 id="name-commit">
 <a href="#section-3.1.2" class="section-number selfRef">3.1.2. </a><a href="#name-commit" class="section-name selfRef">Commit</a>
           </h4>
-<p id="section-3.1.2-1">When a member receives a <code>Commit</code> message (Section 12.4.2. <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>)
+<p id="section-3.1.2-1">When a member receives a <code>Commit</code> message (Section 12.4.2. <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>)
 the checks are updated as follows.<a href="#section-3.1.2-1" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-3.1.2-2">
 <li id="section-3.1.2-2.1">Verify the sender's membership (see <a href="#proof-of-membership" class="auto internal xref">Section 3.2</a>).<a href="#section-3.1.2-2.1" class="pilcrow">¶</a>
@@ -1360,14 +1359,14 @@ the checks are updated as follows.<a href="#section-3.1.2-1" class="pilcrow">¶<
 <a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-proof-of-membership" class="section-name selfRef">Proof of Membership</a>
         </h3>
 <p id="section-3.2-1">To verify the group membership of the sender of a commit, the receiver with an
-expandable tree checks the sender's leaf (see Section 7.3 <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>), as
-well as the correctness of the tree as described in <a href="#verify-expandable-tree" class="auto internal xref">Section 3.3</a>.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+expandable tree checks the sender's leaf (see Section 7.3 <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>), as
+well as the correctness of the tree as described in <a href="#verifying-expandable-trees" class="auto internal xref">Section 3.3</a>.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="verify-expandable-tree">
+<div id="verifying-expandable-trees">
 <section id="section-3.3">
-        <h3 id="name-verify-expandable-tree">
-<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-verify-expandable-tree" class="section-name selfRef">Verify Expandable Tree</a>
+        <h3 id="name-verifying-expandable-trees">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-verifying-expandable-trees" class="section-name selfRef">Verifying Expandable Trees</a>
         </h3>
 <p id="section-3.3-1">To verify the correctness of an expandable tree the client checks its tree hash
 and parent hashes.
@@ -1378,62 +1377,46 @@ for all nodes where the client does not have the full nodes.<a href="#section-3.
 <p id="section-3.3-2">Check that the encryption keys of all received nodes are unique.<a href="#section-3.3-2" class="pilcrow">¶</a></p>
 </section>
 </div>
-</section>
-</div>
-<div id="receiver-specific-commits">
-<section id="section-4">
-      <h2 id="name-receiver-specific-commits">
-<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-receiver-specific-commits" class="section-name selfRef">Receiver specific Commits</a>
-      </h2>
-<p id="section-4-1">To reduce the size of <code>Commit</code> messages, especially in large, sparse trees, the
-delivery service can strip unnecessary parts of the <code>Commit</code> when using the public
-message type for <code>MLSMessage</code>.<a href="#section-4-1" class="pilcrow">¶</a></p>
-<p id="section-4-2">The structure of the message stays the same but the server removes all <code>HPKECiphertext</code>
-from the <code>encrypted_path_secret</code> in the commit's <code>UpdatePath</code>, if present, where
-the <code>encryption_key</code> does not match the receiver's encryption key.<a href="#section-4-2" class="pilcrow">¶</a></p>
-<p id="section-4-3">This breaks the signature on the <code>FramedContent</code> such that this <span class="bcp14">MUST NOT</span> be checked
-by the receiver of such a commit.<a href="#section-4-3" class="pilcrow">¶</a></p>
-</section>
-</div>
-<div id="retrieving-the-expandable-tree">
-<section id="section-5">
-      <h2 id="name-retrieving-the-expandable-t">
-<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-retrieving-the-expandable-t" class="section-name selfRef">Retrieving the Expandable Tree</a>
-      </h2>
-<p id="section-5-1">The <code>ExpandableTree</code> is provided by the delivery service to the client on request.
-Alternatively, a client can send the <code>ExpandableTree</code> as extension in <code>Commit</code>
-and <code>Welcome</code> messages.
-See <a href="#expandable-tree" class="auto internal xref">Section 3</a> for details on the expandable tree extension.<a href="#section-5-1" class="pilcrow">¶</a></p>
-<div id="expandable-tree-from-the-deliver-service">
-<section id="section-5.1">
-        <h3 id="name-expandable-tree-from-the-de">
-<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-expandable-tree-from-the-de" class="section-name selfRef">Expandable Tree from the Deliver Service</a>
+<div id="retrieving-expandable-tree-information">
+<section id="section-3.4">
+        <h3 id="name-retrieving-expandable-tree-">
+<a href="#section-3.4" class="section-number selfRef">3.4. </a><a href="#name-retrieving-expandable-tree-" class="section-name selfRef">Retrieving Expandable Tree Information</a>
         </h3>
-<p id="section-5.1-1">In particular, when joining a group, after receiving a <code>Welcome</code> message, the
+<p id="section-3.4-1">The <code>ExpandableTree</code> is provided by the delivery service to the client on request.
+Alternatively, a client can send the <code>ExpandableTree</code> as extension in <code>Welcome</code>
+messages.
+See <a href="#expandable-tree" class="auto internal xref">Section 3</a> for details on the expandable tree extension.<a href="#section-3.4-1" class="pilcrow">¶</a></p>
+<div id="expandable-tree-from-the-deliver-service">
+<section id="section-3.4.1">
+          <h4 id="name-expandable-tree-from-the-de">
+<a href="#section-3.4.1" class="section-number selfRef">3.4.1. </a><a href="#name-expandable-tree-from-the-de" class="section-name selfRef">Expandable Tree from the Deliver Service</a>
+          </h4>
+<p id="section-3.4.1-1">In particular, when joining a group, after receiving a <code>Welcome</code> message, the
 client queries the delivery service for the expandable tree.
 The delivery service must keep track of the group's state (tree) and assemble the
-<code>ExpandableTree</code> when requested for a given sender and receiver.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
-<p id="section-5.1-2">When receiving a <code>Commit</code> message, the client queries the delivery service for
-the sender's direct path to check its membership.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
+<code>ExpandableTree</code> when requested for a given sender and receiver.<a href="#section-3.4.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.4.1-2">When receiving a <code>Commit</code> message, the client queries the delivery service for
+the sender's direct path to check its membership.<a href="#section-3.4.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="expandable-tree-from-the-sender">
-<section id="section-5.2">
-        <h3 id="name-expandable-tree-from-the-se">
-<a href="#section-5.2" class="section-number selfRef">5.2. </a><a href="#name-expandable-tree-from-the-se" class="section-name selfRef">Expandable Tree from the Sender</a>
-        </h3>
-<p id="section-5.2-1">When the deliver service does not provide the necessary endpoints to query the
+<section id="section-3.4.2">
+          <h4 id="name-expandable-tree-from-the-se">
+<a href="#section-3.4.2" class="section-number selfRef">3.4.2. </a><a href="#name-expandable-tree-from-the-se" class="section-name selfRef">Expandable Tree from the Sender</a>
+          </h4>
+<p id="section-3.4.2-1">When the delivery service does not provide the necessary endpoints to query the
 expandable trees, the sender can include it into the <code>GroupInfo</code> extensions in
-the <code>Welcome</code> message.<a href="#section-5.2-1" class="pilcrow">¶</a></p>
-<p id="section-5.2-2">TODO: There no place to put extensions for <code>Commit</code>s.<a href="#section-5.2-2" class="pilcrow">¶</a></p>
+the <code>Welcome</code> message.<a href="#section-3.4.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="expandable-tree-1">
-<section id="section-5.3">
+<section id="section-3.5">
         <h3 id="name-expandable-tree-3">
-<a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-expandable-tree-3" class="section-name selfRef">Expandable Tree</a>
+<a href="#section-3.5" class="section-number selfRef">3.5. </a><a href="#name-expandable-tree-3" class="section-name selfRef">Expandable Tree</a>
         </h3>
-<div class="lang-tls sourcecode" id="section-5.3-1">
+<div class="lang-tls sourcecode" id="section-3.5-1">
 <pre>
 enum {
   reserved(0),
@@ -1459,78 +1442,123 @@ struct {
   ExpandableNode nodes&lt;V&gt;;
   uint32 num_nodes;
 } ExpandableTree;
-</pre><a href="#section-5.3-1" class="pilcrow">¶</a>
+</pre><a href="#section-3.5-1" class="pilcrow">¶</a>
 </div>
 </section>
 </div>
 <div id="committing-with-an-expandable-tree">
-<section id="section-5.4">
+<section id="section-3.6">
         <h3 id="name-committing-with-an-expandab">
-<a href="#section-5.4" class="section-number selfRef">5.4. </a><a href="#name-committing-with-an-expandab" class="section-name selfRef">Committing with an expandable Tree</a>
+<a href="#section-3.6" class="section-number selfRef">3.6. </a><a href="#name-committing-with-an-expandab" class="section-name selfRef">Committing with an expandable Tree</a>
         </h3>
-<p id="section-5.4-1">TODO: how to get from the expandable tree to the full tree<a href="#section-5.4-1" class="pilcrow">¶</a></p>
+<p id="section-3.6-1">A client with an expandable <em>can not commit</em> because it doesn't know the necessary
+public keys in the tree to encrypt to.
+Therefore, if a client with an expandable tree wants to commit, it first has to
+retrieve the full tree from the server.
+In order ensure that the tree is the expanded version of the expandable tree known
+to the client, the client <span class="bcp14">MUST</span> perform the following checks:<a href="#section-3.6-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-5.4-2.1">check that full tree is consistent with expandable tree<a href="#section-5.4-2.1" class="pilcrow">¶</a>
+<li class="normal" id="section-3.6-2.1">Verify that the tree hash of the expandable tree and the full tree are equivalent.<a href="#section-3.6-2.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-5.4-2.2">do all checks in Welcome<a href="#section-5.4-2.2" class="pilcrow">¶</a>
+          <li class="normal" id="section-3.6-2.2">Verify that all full nodes (<code>XNode</code>) in the expandable tree are equivalent to
+the corresponding node in the full tree.<a href="#section-3.6-2.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.6-2.3">Perform all checks on the tree as if joining the group with a <code>Welcome</code> message (see Section 12.4.3.1. in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>).<a href="#section-3.6-2.3" class="pilcrow">¶</a>
 </li>
         </ul>
+<p id="section-3.6-3">To retrieve the full tree, the delivery service must provide an end point,
+equivalent to the one used to retrieve the full tree for a new member that wants
+to join with a commit.<a href="#section-3.6-3" class="pilcrow">¶</a></p>
 <div id="maintaining-state">
-<section id="section-5.4.1">
+<section id="section-3.6.1">
           <h4 id="name-maintaining-state">
-<a href="#section-5.4.1" class="section-number selfRef">5.4.1. </a><a href="#name-maintaining-state" class="section-name selfRef">Maintaining state</a>
+<a href="#section-3.6.1" class="section-number selfRef">3.6.1. </a><a href="#name-maintaining-state" class="section-name selfRef">Maintaining state</a>
           </h4>
-<p id="section-5.4.1-1">TODO<a href="#section-5.4.1-1" class="pilcrow">¶</a></p>
-<ul class="normal">
-<li class="normal" id="section-5.4.1-2.1">throw away state and stay in expandable trees<a href="#section-5.4.1-2.1" class="pilcrow">¶</a>
-</li>
-            <li class="normal" id="section-5.4.1-2.2">keep the full tree and operate in full MLS after this point<a href="#section-5.4.1-2.2" class="pilcrow">¶</a>
-</li>
-          </ul>
+<p id="section-3.6.1-1">After committing, the client can decide to switch to regular MLS and process the
+full tree as described in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.
+This will cause the client's performance to regress to the performance of regular
+MLS, but allows it to commit again without the necessity to download the full
+tree again.<a href="#section-3.6.1-1" class="pilcrow">¶</a></p>
+<p id="section-3.6.1-2">If the client does not expect to commit regularly, only the expandable tree should
+be kept after a commit.<a href="#section-3.6.1-2" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
 </div>
+</section>
+</div>
+<div id="receiver-specific-commits">
+<section id="section-4">
+      <h2 id="name-receiver-specific-commits">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-receiver-specific-commits" class="section-name selfRef">Receiver specific Commits</a>
+      </h2>
+<p id="section-4-1">To reduce the size of <code>Commit</code> messages, especially in large, sparse trees, the
+delivery service can strip unnecessary parts of the <code>Commit</code> when using the public
+message type for <code>MLSMessage</code>.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">The structure of the message stays the same but the server removes all <code>HPKECiphertext</code>
+from the <code>encrypted_path_secret</code> in the commit's <code>UpdatePath</code>, if present, where
+the <code>encryption_key</code> does not match the receiver's encryption key.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">This breaks the signature on the <code>FramedContent</code> such that this <span class="bcp14">MUST NOT</span> be checked
+by the receiver of such a commit.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<p id="section-4-4">The delivery service sends an expandable commit <code>XCommit</code> message that is defined
+as follows.<a href="#section-4-4" class="pilcrow">¶</a></p>
+<p id="section-4-5">A new content type <code>xcommit(4)</code> is defined for <code>FramedContent</code>.<a href="#section-4-5" class="pilcrow">¶</a></p>
+<div class="lang-tls sourcecode" id="section-4-6">
+<pre>
+struct {
+  ExpandableNode nodes&lt;V&gt;;
+} XPath;
+
+struct {
+  ProposalOrRef proposal&lt;V&gt;;
+  optional&lt;UpdatePath&gt; path;
+  optional&lt;XPath&gt; sender_path;
+} XCommit;
+</pre><a href="#section-4-6" class="pilcrow">¶</a>
+</div>
+<p id="section-4-7">Similar to checking expandable trees (<a href="#verifying-expandable-trees" class="auto internal xref">Section 3.3</a>) the receiver
+of an <code>XCommit</code> <span class="bcp14">MUST</span> verify the parent hash value on each node by using
+<code>original_tree_hash</code> of the co-path nodes, and the tree hash of the new tree.<a href="#section-4-7" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">
-<section id="section-6">
+<section id="section-5">
       <h2 id="name-security-considerations">
-<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
       </h2>
-<p id="section-6-1">TODO Security<a href="#section-6-1" class="pilcrow">¶</a></p>
+<p id="section-5-1">TODO Security<a href="#section-5-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6-2.1">public keys only used when committing, at this point we have the full tree<a href="#section-6-2.1" class="pilcrow">¶</a>
+<li class="normal" id="section-5-2.1">public keys only used when committing, at this point we have the full tree<a href="#section-5-2.1" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-6-2.2">own path secrets<a href="#section-6-2.2" class="pilcrow">¶</a>
+        <li class="normal" id="section-5-2.2">own path secrets<a href="#section-5-2.2" class="pilcrow">¶</a>
 </li>
-        <li class="normal" id="section-6-2.3">
-          <p id="section-6-2.3.1">proposal validation issues<a href="#section-6-2.3.1" class="pilcrow">¶</a></p>
+        <li class="normal" id="section-5-2.3">
+          <p id="section-5-2.3.1">proposal validation issues<a href="#section-5-2.3.1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6-2.3.2.1">can't check double join<a href="#section-6-2.3.2.1" class="pilcrow">¶</a>
+<li class="normal" id="section-5-2.3.2.1">can't check double join<a href="#section-5-2.3.2.1" class="pilcrow">¶</a>
 </li>
           </ul>
 </li>
       </ul>
 <div id="comparison-with-rfc-mls">
-<section id="section-6.1">
+<section id="section-5.1">
         <h3 id="name-comparison-with-rfc-mls">
-<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-comparison-with-rfc-mls" class="section-name selfRef">Comparison with RFC MLS</a>
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-comparison-with-rfc-mls" class="section-name selfRef">Comparison with RFC MLS</a>
         </h3>
-<p id="section-6.1-1">The main change compared to the protocol as specified in <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span> is that
+<p id="section-5.1-1">The main change compared to the protocol as specified in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span> is that
 the receiver of a <code>Welcome</code> or <code>Commit</code> message, with an expandable tree, can not
-perform all checks as mandated in <span>[<a href="#mls-protocol" class="cite xref">mls-protocol</a>]</span>.<a href="#section-6.1-1" class="pilcrow">¶</a></p>
-<p id="section-6.1-2">In particular the following checks are omitted.<a href="#section-6.1-2" class="pilcrow">¶</a></p>
+perform all checks as mandated in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<p id="section-5.1-2">In particular the following checks are omitted.<a href="#section-5.1-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6.1-3.1">Check for uniqueness of all encryption and signature keys.
-Because not all keys are known, the check can only be performed on the known keys.<a href="#section-6.1-3.1" class="pilcrow">¶</a>
+<li class="normal" id="section-5.1-3.1">Check for uniqueness of all encryption and signature keys.
+Because not all keys are known, the check can only be performed on the known keys.<a href="#section-5.1-3.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-6.1-3.2">Check validity of leaf nodes in the tree when joining a group.<a href="#section-6.1-3.2" class="pilcrow">¶</a>
+          <li class="normal" id="section-5.1-3.2">Check validity of leaf nodes in the tree when joining a group.<a href="#section-5.1-3.2" class="pilcrow">¶</a>
 </li>
         </ul>
-<p id="section-6.1-4">When using receiver specific commits the following checks are omitted in addition.<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">When using receiver specific commits the following checks are omitted in addition.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-6.1-5.1">Check the signature on the <code>FramedContent</code>.<a href="#section-6.1-5.1" class="pilcrow">¶</a>
+<li class="normal" id="section-5.1-5.1">Check the signature on the <code>FramedContent</code>.<a href="#section-5.1-5.1" class="pilcrow">¶</a>
 </li>
         </ul>
 </section>
@@ -1538,43 +1566,31 @@ Because not all keys are known, the check can only be performed on the known key
 </section>
 </div>
 <div id="iana-considerations">
-<section id="section-7">
+<section id="section-6">
       <h2 id="name-iana-considerations">
-<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
       </h2>
-<p id="section-7-1">This document has no IANA actions.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-6-1">This document has no IANA actions.<a href="#section-6-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<section id="section-8">
-      <h2 id="name-references">
-<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-references" class="section-name selfRef">References</a>
+<section id="section-7">
+      <h2 id="name-normative-references">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
       </h2>
-<section id="section-8.1">
-        <h3 id="name-normative-references">
-<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
-        </h3>
 <dl class="references">
 <dt id="RFC2119">[RFC2119]</dt>
-        <dd>
+      <dd>
 <span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC8174">[RFC8174]</dt>
       <dd>
 <span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-</dl>
-</section>
-<section id="section-8.2">
-        <h3 id="name-informative-references">
-<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
-        </h3>
-<dl class="references">
-<dt id="mls-protocol">[mls-protocol]</dt>
-      <dd>
-<span class="refTitle">"The Messaging Layer Security (MLS) Protocol"</span>, <span>n.d.</span>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-ietf-mls-protocol/">https://datatracker.ietf.org/doc/draft-ietf-mls-protocol/</a>&gt;</span>. </dd>
+<dt id="RFC9420">[RFC9420]</dt>
+    <dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Beurdouche, B.</span>, <span class="refAuthor">Robert, R.</span>, <span class="refAuthor">Millican, J.</span>, <span class="refAuthor">Omara, E.</span>, and <span class="refAuthor">K. Cohn-Gordon</span>, <span class="refTitle">"The Messaging Layer Security (MLS) Protocol"</span>, <span class="seriesInfo">RFC 9420</span>, <span class="seriesInfo">DOI 10.17487/RFC9420</span>, <time datetime="2023-07" class="refDate">July 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9420">https://www.rfc-editor.org/rfc/rfc9420</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
-</section>
 </section>
 <div id="acknowledgments">
 <section id="appendix-A">
