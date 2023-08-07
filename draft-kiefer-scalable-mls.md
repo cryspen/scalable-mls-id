@@ -241,7 +241,7 @@ be kept after a commit.
 
 To reduce the size of `Commit` messages, especially in large, sparse trees, the
 delivery service can strip unnecessary parts of the `Commit` when using the public
-message type for `MLSMessage`.
+message type for `MLSMessage` and the sender type is `member`.
 
 The structure of the message stays the same but the server removes all `HPKECiphertext`
 from the `encrypted_path_secret` in the commit's `UpdatePath`, if present, where
@@ -279,6 +279,10 @@ TODO Security
 - own path secrets
 - proposal validation issues
   - can't check double join
+- commits are using only the confirmation tag for the security
+  - group context is not signed -> but it was only used to bind the signature to an epoch, which is done by the confirmation tag as well
+  - other than that the confirmation tag covers everything relevant (except for `WireFormat` and `ProtocolVersion`)
+  - proof of membership ({{proof-of-membership}}) ensures that the sender is in the group (XXX: Do we even need this if we rely on the confirmation tag, which is only known to group members?)
 
 ## Comparison with RFC MLS
 The main change compared to the protocol as specified in {{!RFC9420}} is that
