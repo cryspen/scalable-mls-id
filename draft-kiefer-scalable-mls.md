@@ -271,6 +271,13 @@ Similar to checking expandable trees ({{verifying-expandable-trees}}) the receiv
 of an `XCommit` MUST verify the parent hash value on each node by using
 `original_tree_hash` of the co-path nodes, and the tree hash of the new tree.
 
+## Applying receiver specific commits
+
+When receiving an `XCommit`, the client applies it like a regular commit.
+
+Additionally, the client checks the membership of the committer as described in
+{{proof-of-membership}} using the `sender_path`.
+
 # Security Considerations
 
 TODO Security
@@ -282,7 +289,7 @@ TODO Security
 - commits are using only the confirmation tag for the security
   - group context is not signed -> but it was only used to bind the signature to an epoch, which is done by the confirmation tag as well
   - other than that the confirmation tag covers everything relevant (except for `WireFormat` and `ProtocolVersion`)
-  - proof of membership ({{proof-of-membership}}) ensures that the sender is in the group (XXX: Do we even need this if we rely on the confirmation tag, which is only known to group members?)
+  - proof of membership ({{proof-of-membership}}) ensures that the sender is in the correct subtree
 
 ## Comparison with RFC MLS
 The main change compared to the protocol as specified in {{!RFC9420}} is that
