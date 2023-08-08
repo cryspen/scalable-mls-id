@@ -1052,7 +1052,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Kiefer &amp; Bhargavan</td>
-<td class="center">Expires 8 February 2024</td>
+<td class="center">Expires 9 February 2024</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-kiefer-scalable-mls-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2023-08-07" class="published">7 August 2023</time>
+<time datetime="2023-08-08" class="published">8 August 2023</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2024-02-08">8 February 2024</time></dd>
+<dd class="expires"><time datetime="2024-02-09">9 February 2024</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1123,7 +1123,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 8 February 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 9 February 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1204,6 +1204,11 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
             <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-receiver-specific-commits" class="internal xref">Receiver specific Commits</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-applying-receiver-specific-" class="internal xref">Applying receiver specific commits</a></p>
+</li>
+            </ul>
 </li>
           <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
             <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
@@ -1519,6 +1524,16 @@ struct {
 <p id="section-4-7">Similar to checking expandable trees (<a href="#verifying-expandable-trees" class="auto internal xref">Section 3.3</a>) the receiver
 of an <code>XCommit</code> <span class="bcp14">MUST</span> verify the parent hash value on each node by using
 <code>original_tree_hash</code> of the co-path nodes, and the tree hash of the new tree.<a href="#section-4-7" class="pilcrow">¶</a></p>
+<div id="applying-receiver-specific-commits">
+<section id="section-4.1">
+        <h3 id="name-applying-receiver-specific-">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-applying-receiver-specific-" class="section-name selfRef">Applying receiver specific commits</a>
+        </h3>
+<p id="section-4.1-1">When receiving an <code>XCommit</code>, the client applies it like a regular commit.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-2">Additionally, the client checks the membership of the committer as described in
+<a href="#proof-of-membership" class="auto internal xref">Section 3.2</a> using the <code>sender_path</code>.<a href="#section-4.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
 </section>
 </div>
 <div id="security-considerations">
@@ -1546,7 +1561,7 @@ of an <code>XCommit</code> <span class="bcp14">MUST</span> verify the parent has
 </li>
             <li class="normal" id="section-5-2.4.2.2">other than that the confirmation tag covers everything relevant (except for <code>WireFormat</code> and <code>ProtocolVersion</code>)<a href="#section-5-2.4.2.2" class="pilcrow">¶</a>
 </li>
-            <li class="normal" id="section-5-2.4.2.3">proof of membership (<a href="#proof-of-membership" class="auto internal xref">Section 3.2</a>) ensures that the sender is in the group (XXX: Do we even need this if we rely on the confirmation tag, which is only known to group members?)<a href="#section-5-2.4.2.3" class="pilcrow">¶</a>
+            <li class="normal" id="section-5-2.4.2.3">proof of membership (<a href="#proof-of-membership" class="auto internal xref">Section 3.2</a>) ensures that the sender is in the correct subtree<a href="#section-5-2.4.2.3" class="pilcrow">¶</a>
 </li>
           </ul>
 </li>
