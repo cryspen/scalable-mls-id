@@ -5,7 +5,7 @@
 Network Working Group                                          F. Kiefer
 Internet-Draft                                              K. Bhargavan
 Intended status: Informational                                   Cryspen
-Expires: 9 February 2024                                   8 August 2023
+Expires: 16 February 2024                                 15 August 2023
 
 
                               Scalable MLS
@@ -46,7 +46,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 9 February 2024.
+   This Internet-Draft will expire on 16 February 2024.
 
 Copyright Notice
 
@@ -68,7 +68,7 @@ Table of Contents
    2.  Conventions and Definitions
    3.  Expandable Tree
      3.1.  Verifying Tree Validity
-       3.1.1.  Joining a Group with a Welcome
+       3.1.1.  Joining a Group via Welcome Message
        3.1.2.  Commit
      3.2.  Proof of Membership
      3.3.  Verifying Expandable Trees
@@ -148,7 +148,7 @@ Table of Contents
    performed on tree modifications.  In particular the validation of
    commits and welcome packages are modified compared to [RFC9420].
 
-3.1.1.  Joining a Group with a Welcome
+3.1.1.  Joining a Group via Welcome Message
 
    When a new member joins the group with a Welcome message
    (Section 12.4.3.1.  [RFC9420]) without the ratchet tree extension the
@@ -251,7 +251,19 @@ Table of Contents
    A client with an expandable _can not commit_ because it doesn't know
    the necessary public keys in the tree to encrypt to.  Therefore, if a
    client with an expandable tree wants to commit, it first has to
-   retrieve the full tree from the server.  In order ensure that the
+   retrieve the full tree from the server.  Because a client with an
+   expandable tree is not able to fully verify incoming proposals, it
+   MUST NOT commit to proposals it received while not holding a full
+   tree.  A client that is upgrading from expandable trees to a full MLS
+   tree is therefore considered to be a new client that has no knowledge
+   of proposals before it joined.  Note that this restriction can not be
+   enforced.  However, since each client in [RFC9420] must check the
+   proposals, a misbehaving client that upgraded from an expandable tree
+   can only successfully commit bogus proposals when all other clients
+   and the delivery service agree.
+
+   A client that is upgrading to the full tree by requesting the full
+   tree of the current epoch from the server.  In order ensure that the
    tree is the expanded version of the expandable tree known to the
    client, the client MUST perform the following checks:
 

@@ -1052,7 +1052,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </tr></thead>
 <tfoot><tr>
 <td class="left">Kiefer &amp; Bhargavan</td>
-<td class="center">Expires 9 February 2024</td>
+<td class="center">Expires 16 February 2024</td>
 <td class="right">[Page]</td>
 </tr></tfoot>
 </table>
@@ -1065,12 +1065,12 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <dd class="internet-draft">draft-kiefer-scalable-mls-latest</dd>
 <dt class="label-published">Published:</dt>
 <dd class="published">
-<time datetime="2023-08-08" class="published">8 August 2023</time>
+<time datetime="2023-08-15" class="published">15 August 2023</time>
     </dd>
 <dt class="label-intended-status">Intended Status:</dt>
 <dd class="intended-status">Informational</dd>
 <dt class="label-expires">Expires:</dt>
-<dd class="expires"><time datetime="2024-02-09">9 February 2024</time></dd>
+<dd class="expires"><time datetime="2024-02-16">16 February 2024</time></dd>
 <dt class="label-authors">Authors:</dt>
 <dd class="authors">
 <div class="author">
@@ -1123,7 +1123,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         time. It is inappropriate to use Internet-Drafts as reference
         material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
 <p id="section-boilerplate.1-4">
-        This Internet-Draft will expire on 9 February 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+        This Internet-Draft will expire on 16 February 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="copyright">
@@ -1165,7 +1165,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
                 <p id="section-toc.1-1.3.2.1.1"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-verifying-tree-validity" class="internal xref">Verifying Tree Validity</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1.2.1">
-                    <p id="section-toc.1-1.3.2.1.2.1.1" class="keepWithNext"><a href="#section-3.1.1" class="auto internal xref">3.1.1</a>.  <a href="#name-joining-a-group-with-a-welc" class="internal xref">Joining a Group with a Welcome</a></p>
+                    <p id="section-toc.1-1.3.2.1.2.1.1" class="keepWithNext"><a href="#section-3.1.1" class="auto internal xref">3.1.1</a>.  <a href="#name-joining-a-group-via-welcome" class="internal xref">Joining a Group via Welcome Message</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1.2.2">
                     <p id="section-toc.1-1.3.2.1.2.2.1"><a href="#section-3.1.2" class="auto internal xref">3.1.2</a>.  <a href="#name-commit" class="internal xref">Commit</a></p>
@@ -1312,10 +1312,10 @@ the full tree can do.
 We therefore update the checks performed on tree modifications.
 In particular the validation of commits and welcome packages are modified compared
 to <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
-<div id="joining-a-group-with-a-welcome">
+<div id="joining-a-group-via-welcome-message">
 <section id="section-3.1.1">
-          <h4 id="name-joining-a-group-with-a-welc">
-<a href="#section-3.1.1" class="section-number selfRef">3.1.1. </a><a href="#name-joining-a-group-with-a-welc" class="section-name selfRef">Joining a Group with a Welcome</a>
+          <h4 id="name-joining-a-group-via-welcome">
+<a href="#section-3.1.1" class="section-number selfRef">3.1.1. </a><a href="#name-joining-a-group-via-welcome" class="section-name selfRef">Joining a Group via Welcome Message</a>
           </h4>
 <p id="section-3.1.1-1">When a new member joins the group with a <code>Welcome</code> message
 (Section 12.4.3.1. <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>) without the ratchet tree extension the checks
@@ -1460,20 +1460,31 @@ struct {
 public keys in the tree to encrypt to.
 Therefore, if a client with an expandable tree wants to commit, it first has to
 retrieve the full tree from the server.
+Because a client with an expandable tree is not able to fully verify incoming
+proposals, it <span class="bcp14">MUST NOT</span> commit to proposals it received while not holding a full tree.
+A client that is upgrading from expandable trees to a full MLS tree is therefore
+considered to be a new client that has no knowledge of proposals before it joined.
+Note that this restriction can not be enforced.
+However, since each client in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span> must check the proposals, a misbehaving
+client that upgraded from an expandable tree can only successfully commit bogus
+proposals when all other clients and the delivery service agree.<a href="#section-3.6-1" class="pilcrow">¶</a></p>
+<p id="section-3.6-2">A client that is upgrading to the full tree by requesting the full tree of the
+current epoch from the server.
 In order ensure that the tree is the expanded version of the expandable tree known
-to the client, the client <span class="bcp14">MUST</span> perform the following checks:<a href="#section-3.6-1" class="pilcrow">¶</a></p>
+to the client, the client <span class="bcp14">MUST</span> perform the following checks:<a href="#section-3.6-2" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-3.6-2.1">Verify that the tree hash of the expandable tree and the full tree are equivalent.<a href="#section-3.6-2.1" class="pilcrow">¶</a>
+<li class="normal" id="section-3.6-3.1">Verify that the tree hash of the expandable tree and the full tree are equivalent.<a href="#section-3.6-3.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-3.6-2.2">Verify that all full nodes (<code>XNode</code>) in the expandable tree are equivalent to
-the corresponding node in the full tree.<a href="#section-3.6-2.2" class="pilcrow">¶</a>
+          <li class="normal" id="section-3.6-3.2">Verify that all full nodes (<code>XNode</code>) in the expandable tree are equivalent to
+the corresponding node in the full tree.<a href="#section-3.6-3.2" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-3.6-2.3">Perform all checks on the tree as if joining the group with a <code>Welcome</code> message (see Section 12.4.3.1. in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>).<a href="#section-3.6-2.3" class="pilcrow">¶</a>
+          <li class="normal" id="section-3.6-3.3">Perform all checks on the tree as if joining the group with a <code>Welcome</code> message
+(see Section 12.4.3.1. in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>).<a href="#section-3.6-3.3" class="pilcrow">¶</a>
 </li>
         </ul>
-<p id="section-3.6-3">To retrieve the full tree, the delivery service must provide an end point,
+<p id="section-3.6-4">To retrieve the full tree, the delivery service must provide an end point,
 equivalent to the one used to retrieve the full tree for a new member that wants
-to join with a commit.<a href="#section-3.6-3" class="pilcrow">¶</a></p>
+to join with a commit.<a href="#section-3.6-4" class="pilcrow">¶</a></p>
 <div id="maintaining-state">
 <section id="section-3.6.1">
           <h4 id="name-maintaining-state">
