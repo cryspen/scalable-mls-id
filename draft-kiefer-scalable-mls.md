@@ -122,7 +122,7 @@ We therefore update the checks performed on tree modifications.
 In particular the validation of commits and welcome packages are modified compared
 to {{!RFC9420}}.
 
-### Joining a Group with a Welcome
+### Joining a Group via Welcome Message
 When a new member joins the group with a `Welcome` message
 (Section 12.4.3.1. {{!RFC9420}}) without the ratchet tree extension the checks
 are updated as follows.
@@ -214,13 +214,25 @@ A client with an expandable *can not commit* because it doesn't know the necessa
 public keys in the tree to encrypt to.
 Therefore, if a client with an expandable tree wants to commit, it first has to
 retrieve the full tree from the server.
+Because a client with an expandable tree is not able to fully verify incoming
+proposals, it MUST NOT commit to proposals it received while not holding a full tree.
+A client that is upgrading from expandable trees to a full MLS tree is therefore
+considered to be a new client that has no knowledge of proposals before it joined.
+Note that this restriction can not be enforced.
+However, since each client in {{!RFC9420}} must check the proposals, a misbehaving
+client that upgraded from an expandable tree can only successfully commit bogus
+proposals when all other clients and the delivery service agree.
+
+A client that is upgrading to the full tree by requesting the full tree of the
+current epoch from the server.
 In order ensure that the tree is the expanded version of the expandable tree known
 to the client, the client MUST perform the following checks:
 
 * Verify that the tree hash of the expandable tree and the full tree are equivalent.
 * Verify that all full nodes (`XNode`) in the expandable tree are equivalent to
   the corresponding node in the full tree.
-* Perform all checks on the tree as if joining the group with a `Welcome` message (see Section 12.4.3.1. in {{!RFC9420}}).
+* Perform all checks on the tree as if joining the group with a `Welcome` message
+(see Section 12.4.3.1. in {{!RFC9420}}).
 
 To retrieve the full tree, the delivery service must provide an end point,
 equivalent to the one used to retrieve the full tree for a new member that wants
