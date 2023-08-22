@@ -66,7 +66,7 @@ This document describes a scalable variant of the MLS protocol.
 
 This draft defines two modifications to the main MLS protocol in {{!RFC9420}}.
 
-First, it defines expandable trees in Section {{expandable-tree}} that allow
+First, it defines expandable paths in Section {{expandable-tree}} that allow
 retrieving and storing only the minimally required tree information to participate
 in an MLS group.
 An expandable tree can always be completed to a full MLS tree as described in
@@ -83,57 +83,40 @@ that reduce the data downloaded by clients for processing commits.
 
 # MLS Groups with Expandable Trees
 
-MLS groups that support expandable trees must use the `expandable_trees` extension
-in the required capabilities.
+MLS groups with expandable paths allow light clients to achieve linear computation
+and communication complexity by using expandable paths and receiver specific
+commits.
+In turn, these clients can only commit after upgrading to full clients ({{committing-with-an-expandable-tree}}).
+
+## Terminology
+This document introduces the following new concepts
+
+- Expandable Path: An expandable path is a direct path from a leaf node to the root
+  with full nodes along the path, and parent and tree hashes on the co-path.
+- Partial Commit: A partial commit is a commit that the server stripped down to
+  hold only the encrypted path secret for the receiver.
+  The framed content signature on partial commits is not valid.
+- Scalable client: A scalable client is a client that does not know the full MLS
+  tree but only its own expandable path.
+
+## Protocol Changes Overview
+MLS groups that support expandable paths must use the `expandable_paths` extension
+({{expandable-paths-extension}}) in the required capabilities.
 When this extension is present in the group context all messages, except for
 application messages, MUST use public messages.
 
-## Expandable Trees Extension
-The `expandable_trees` group context extension is used to signal that the group
-supports clients with expandable trees.
+The changes are primarily for clients that want to use expandable paths.
 
-~~~tls
-enum ExpandableClientType {
-  reserved(0),
-  no_upgrade(1),
-  resync_upgrade(2),
-  self_upgrade(3),
-  any_upgrade(4),
-}
-
-struct {
-  ExpandableClientType expandable;
-} ExpandableTreesExtension;
-~~~
-
-The extension must be present and set in the required capabiblities of a group
-when supporting clients with expandable trees.
-It defines ways such a client may upgrade to a full client.
-
-- `no_upgrade` does not allow expandable clients to update to full MLS.
-- `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
-  The resync removes the old client from the group and adds a new client with full MLS.
-- `self_upgrade` allows clients to upgrade to full MLS by retrieving the full tree
-  from the server. Together with the signed group info of the current epoch the
-  client "silently" upgrades to full MLS with security equivalent to joining a new
-  group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
-- `any_upgrade` allows clients to use either of the two upgrade mechanisms.
-
-TODO: Add IANA number for the extension.
-
-## Protocol Changes Overview
-
-The changes are primarily for clients that want to use expandable trees.
-
-### Joining a Group with expandable trees
-When joining a group as a client with expandable trees, the client downloads
+### Joining a Group with expandable paths
+When joining a group as a client with expandable paths, the client downloads
 only it's own expandable path and the committer's proof of membership.
 The sender's proof of membership is discarded after being checked such that only
 the client's direct, expandable path is stored.
 
 ### Processing Proposals
-Proposals are ignored and not processed at all.
-They are only stored to apply when commits use proposals by reference.
+Proposals are not processed at all.
+They are only stored to apply when commits use proposals by reference and to know
+the proposal sender.
 
 ### Processing Commits
 When processing a commit, the client retrieves
@@ -147,7 +130,7 @@ the sender's proof of membership, the signed group info, and the confirmation ta
 
 ### Changes for committers
 
-In groups with `expandable_trees` support, committer must send a signed group
+In groups with `expandable_paths` support, committer MUST send a signed group
 info with every commit.
 
 ### Server Changes
@@ -155,6 +138,39 @@ info with every commit.
 The server must track the public group state together with the signed group info,
 and provide endpoints for clients to retrieve expandable direct paths, the signed
 group info, and partial commits.
+
+## Expandable Paths Extension
+The `expandable_paths` group context extension is used to signal that the group
+supports clients with expandable paths.
+
+~~~tls
+enum ExpandableClientType {
+  reserved(0),
+  no_upgrade(1),
+  resync_upgrade(2),
+  self_upgrade(3),
+  any_upgrade(4),
+}
+
+struct {
+  ExpandableClientType expandable;
+} ExpandablePathsExtension;
+~~~
+
+The extension must be present and set in the required capabilities of a group
+when supporting clients with expandable paths.
+It further defines ways scalable clients may upgrade to a full client.
+
+- `no_upgrade` does not allow expandable clients to update to full MLS.
+- `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
+  The resync removes the old client from the group and adds a new client with full MLS.
+- `self_upgrade` allows clients to upgrade to full MLS by retrieving the full tree
+  from the server. Together with the signed group info of the current epoch the
+  client "silently" upgrades to full MLS with security equivalent to joining a new
+  group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
+- `any_upgrade` allows clients to use either of the two upgrade mechanisms.
+
+TODO: Add IANA number for the extension.
 
 # Expandable Tree
 An expandable tree is a modified ratchet tree as described in {{!RFC9420}}.
@@ -207,7 +223,7 @@ are updated as follows.
     2. confirmation tag
     3. tree hash
 2. Verify the sender's membership (see {{proof-of-membership}}).
-3. Check the own direct path to the root (see {{verifying-expandable-trees}}).
+3. Check the own direct path to the root (see {{verifying-expandable-paths}}).
 4. Do *not* verify leaves in the tree.
 
 ### Commit
@@ -220,9 +236,9 @@ the checks are updated as follows.
 ## Proof of Membership
 To verify the group membership of the sender of a commit, the receiver with an
 expandable tree checks the sender's leaf (see Section 7.3 {{!RFC9420}}), as
-well as the correctness of the tree as described in {{verifying-expandable-trees}}.
+well as the correctness of the tree as described in {{verifying-expandable-paths}}.
 
-## Verifying Expandable Trees
+## Verifying Expandable Paths
 To verify the correctness of an expandable tree the client checks its tree hash
 and parent hashes.
 For each direct path from a leaf to the root that the client has, it checks the
@@ -251,7 +267,7 @@ the sender's direct path to check its membership.
 ### Expandable Tree from the Sender
 
 When the delivery service does not provide the necessary endpoints to query the
-expandable trees, the sender can include it into the `GroupInfo` extensions in
+expandable paths, the sender can include it into the `GroupInfo` extensions in
 the `Welcome` message.
 
 ## Expandable Tree
@@ -291,7 +307,7 @@ Therefore, if a client with an expandable tree wants to commit, it first has to
 retrieve the full tree from the server.
 Because a client with an expandable tree is not able to fully verify incoming
 proposals, it MUST NOT commit to proposals it received while not holding a full tree.
-A client that is upgrading from expandable trees to a full MLS tree is therefore
+A client that is upgrading from expandable paths to a full MLS tree is therefore
 considered to be a new client that has no knowledge of proposals before it joined.
 Note that this restriction can not be enforced.
 However, since each client in {{!RFC9420}} must check the proposals, a misbehaving
@@ -354,7 +370,7 @@ struct {
 } XCommit;
 ~~~
 
-Similar to checking expandable trees ({{verifying-expandable-trees}}) the receiver
+Similar to checking expandable paths ({{verifying-expandable-paths}}) the receiver
 of an `XCommit` MUST verify the parent hash value on each node by using
 `original_tree_hash` of the co-path nodes, and the tree hash of the new tree.
 
