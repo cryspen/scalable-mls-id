@@ -81,6 +81,80 @@ that reduce the data downloaded by clients for processing commits.
 {::boilerplate bcp14-tagged}
 
 
+# MLS Groups with Expandable Trees
+
+MLS groups that support expandable trees must use the `expandable_trees` extension
+in the required capabilities.
+When this extension is present in the group context all messages, except for
+application messages, MUST use public messages.
+
+## Expandable Trees Extension
+The `expandable_trees` group context extension is used to signal that the group
+supports clients with expandable trees.
+
+~~~tls
+enum ExpandableClientType {
+  reserved(0),
+  no_upgrade(1),
+  resync_upgrade(2),
+  self_upgrade(3),
+  any_upgrade(4),
+}
+
+struct {
+  ExpandableClientType expandable;
+} ExpandableTreesExtension;
+~~~
+
+The extension must be present and set in the required capabiblities of a group
+when supporting clients with expandable trees.
+It defines ways such a client may upgrade to a full client.
+
+- `no_upgrade` does not allow expandable clients to update to full MLS.
+- `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
+  The resync removes the old client from the group and adds a new client with full MLS.
+- `self_upgrade` allows clients to upgrade to full MLS by retrieving the full tree
+  from the server. Together with the signed group info of the current epoch the
+  client "silently" upgrades to full MLS with security equivalent to joining a new
+  group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
+- `any_upgrade` allows clients to use either of the two upgrade mechanisms.
+
+TODO: Add IANA number for the extension.
+
+## Protocol Changes Overview
+
+The changes are primarily for clients that want to use expandable trees.
+
+### Joining a Group with expandable trees
+When joining a group as a client with expandable trees, the client downloads
+only it's own expandable path and the committer's proof of membership.
+The sender's proof of membership is discarded after being checked such that only
+the client's direct, expandable path is stored.
+
+### Processing Proposals
+Proposals are ignored and not processed at all.
+
+### Processing Commits
+When processing a commit, the client retrieves
+
+- the partial commit that contains only the path secret encrypted for the client
+- the sender's proof of membership
+- the signed group info
+
+The client MUST NOT check the signature on the framed content, but MUST check
+the sender's proof of membership, the signed group info, and the confirmation tag.
+
+### Changes for committers
+
+In groups with `expandable_trees` support, committer must send a signed group
+info with every commit.
+
+### Server Changes
+
+The server must track the public group state together with the signed group info,
+and provide endpoints for clients to retrieve expandable direct paths, the signed
+group info, and partial commits.
+
 # Expandable Tree
 An expandable tree is a modified ratchet tree as described in {{!RFC9420}}.
 An expandable tree stores only the direct path from the member to the root plus
