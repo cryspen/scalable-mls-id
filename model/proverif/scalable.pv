@@ -1,0 +1,206 @@
+(*************************************)
+(* An abstract model of Scalable MLS *)
+(*************************************)
+
+
+(*-----------------------------------*)
+(* A Symbolic Cryptographic Model    *)
+(*-----------------------------------*)
+
+(* Public Key Encryption *)
+type privkey.
+type pubkey.
+type symkey.
+fun pk(privkey):pubkey.
+fun penc(pubkey,symkey):bitstring.
+fun pdec(privkey,bitstring):symkey
+reduc forall sk:privkey,m:symkey;
+      pdec(sk,penc(pk(sk),m)) = m.
+
+
+(* Signatures *)
+type sigkey.
+type verifkey.
+fun vk(sigkey):verifkey.
+fun sign(sigkey,bitstring):bitstring.
+fun verify(verifkey,bitstring,bitstring):bool
+reduc forall sk:sigkey,m:bitstring;
+      verify(vk(sk),m,sign(sk,m)) = true.
+
+(* Hashing *)
+free empty:bitstring.
+fun H(bitstring):bitstring.
+
+(* Macing *)
+fun mac(symkey,bitstring):bitstring.
+
+(*-----------------------------------*)
+(* Abstract State for Scalable MLS   *)
+(*-----------------------------------*)
+
+(* Clients representing devices/members *)
+type client.
+
+(* Communication channel for each client *)
+fun chan(client):channel [data].
+
+(* GroupContext(group_id,epoch,tree_hash,confirmed_transcript_hash,extra) *)
+type group_id.
+type group_context.
+fun GroupContext(group_id,nat,bitstring,bitstring,bitstring)
+    : group_context [data].
+
+(* GroupInfo(group_context,confirmation_tag,signature) *)
+fun GroupInfo(group_context,bitstring,bitstring): bitstring [data].
+(* Note: Ignoring leaf_index and extensions *)
+
+(* Global PKI maintained by some AS *)
+(* We assume that each client has a encryption keypair and a signature keypair *)
+
+(* A global table that any client can query to get the public keys of another client *)
+table clients(client,pubkey,verifkey).
+
+(* A local table at each client for it to retrieve its private keys *)
+table keys(client,privkey,sigkey).
+
+(* Local Group State at each Passive Member: (group_context, group_secret, last_updater) *)
+type expandable_state.
+fun ExpandableState(group_context,symkey,client):expandable_state [data].
+(* Note: we ignore path secrets for now, and the distinction between init_secret and epoch_secret *)
+
+(* A local table at each passive client storing its group state *)
+table passive_group_state(client,expandable_state).
+
+(* Local Group State at each Active Member: (expandable_state, full_tree, pending_proposals) *)
+table active_group_state(client,expandable_state,bitstring,bitstring).
+
+
+(*-----------------------------------*)
+(* Security Model and Properties     *)
+(*-----------------------------------*)
+
+(* A channel for the attacker *)
+free att:channel.
+
+(* A group secret created by a client in a particular group context *)
+fun group_secret(client,group_context,bitstring):symkey [private].
+
+(* An event triggered by an active member when generating a group *)
+event Created(client,group_context).
+
+(* An event triggered by an active member to declare that a client is a member of a group in a certain epoch *)
+event Member(client,group_context,client).
+
+(* An event triggered by a passive member when it is has become
+   a member of a group in a certain epoch *)
+event Joined(client,group_context,client).
+
+(* An event triggered when the private keys of a client are compromised *)
+event Compromised(client).
+
+(* Reachability Queries for Various Events *)
+query p:client, ctx:group_context, q:client;
+      event(Created(p,ctx));
+      event(Member(p,ctx,q));
+      event(Joined(q,ctx,p));
+      event(Compromised(q)).
+
+(* Checking if a group secret can ever be known to the adversary *)
+query ctx:group_context, sec:bitstring, p:client, q:client, r:client;
+      attacker(group_secret(p,ctx,sec)).
+
+(* Group Secret Confidentiality:
+   the group secret for G at epoch N can only be known to the attacker
+   if the principal who generates it declares some member M of G at N
+   and M's private keys have been compromised *)
+query ctx:group_context, sec:bitstring, p:client, q:client;
+      attacker(group_secret(p,ctx,sec)) ==>
+      (event(Member(p,ctx,q)) && event(Compromised(q))). 
+
+(* Group State Authentication:
+   the group state at Q for G at epoch N must match that of the
+   last updater, unless it is compromised *)
+query ctx:group_context, sec:bitstring, p:client, q:client;
+      event(Joined(q,ctx,p)) ==>
+      (event(Member(p,ctx,q)) || event(Compromised(p))
+       || event(Compromised(q))).
+          (* Note: q's compromise should not matter if we do more checks *)
+
+(*-----------------------------------*)
+(* Protocol Processes                *)
+(*-----------------------------------*)
+
+(* A process to create a new client *)
+let create_client(p:client) =
+    new dk:privkey;
+    new sk:sigkey;
+    insert keys(p,dk,sk);
+    insert clients(p,pk(dk),vk(sk)).
+
+(* A process to compromise an existing client *)
+let compromise_client(p:client) =
+    get keys(=p,dk,sk) in
+    event Compromised(p);
+    out (att,(dk,sk)).
+
+(* A process for active members of groups *)
+let active_member(p:client) =
+   (* Create a new group *)
+   (
+    (* We let the attacker choose most of our initial group context *)
+    in (att,(tree:bitstring,confirmed_transcript_hash:bitstring,extra:bitstring));
+    get keys(=p,dk,sk) in
+    new id:group_id;
+    let ctx = GroupContext(id,0,H(tree),confirmed_transcript_hash,extra) in
+    new sec:bitstring;
+    let gs = group_secret(p,ctx,sec) in
+    let st = ExpandableState(ctx,gs,p) in
+    event Created(p,ctx);
+    insert active_group_state(p,st,tree,empty)
+   ) |
+   (* Sending the current group secret to the current members *)
+   (
+    (* We let the attacker choose who should be in the current group *)
+    in (att,q:client);
+    get keys(=p,dk,sk) in
+    get active_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
+    get clients(=q,ek,verk) in
+    event Member(p,ctx,q); (* Declare that q is a member of the group *)
+    let enc_gs = penc(ek,gs) in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    let confirmation_tag = mac(gs,txh) in
+    let gi = GroupInfo(ctx,confirmation_tag,sign(sk,(ctx,confirmation_tag))) in
+    out (chan(q),(p,gi,enc_gs))
+   )
+   (* TODO: Send/Receive Commits and Ratcheting *)
+   .
+
+
+(* A process for active members of groups *)
+let passive_member(q:client) =
+   (* Joining a group *)
+   (
+    in (chan(q),(p:client,gi:bitstring,enc_gs:bitstring));
+    get clients(=p,ek,verk) in
+    get keys(=q,dk,sk) in
+    let GroupInfo(ctx,tag,sg) = gi in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    let gs = pdec(dk,enc_gs) in
+    if tag = mac(gs,txh) then (
+       if verify(verk,(ctx,tag),sg) then (
+          event Joined(q,ctx,p);
+	  let st = ExpandableState(ctx,gs,p) in
+	  insert passive_group_state(q,st)
+       )
+    )
+   )
+   .
+
+
+(* Main Process: any number of clients and members *)
+process
+    !(in (att,p:client); create_client(p))
+  | !(in (att,p:client); compromise_client(p)) 
+  | !(in (att,p:client); passive_member(p))
+  | !(in (att,p:client); active_member(p))
+	
