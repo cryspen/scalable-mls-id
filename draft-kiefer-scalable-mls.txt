@@ -177,7 +177,8 @@ Table of Contents
 
 3.2.2.  Processing Proposals
 
-   Proposals are ignored and not processed at all.
+   Proposals are ignored and not processed at all.  They are only stored
+   to apply when commits use proposals by reference.
 
 3.2.3.  Processing Commits
 
