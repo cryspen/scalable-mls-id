@@ -1162,13 +1162,13 @@ svg :is([fill="white"], [fill^="#fff"]) {
             <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-mls-groups-with-expandable-" class="internal xref">MLS Groups with Expandable Trees</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
-                <p id="section-toc.1-1.3.2.1.1" class="keepWithNext"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-expandable-trees-extension" class="internal xref">Expandable Trees Extension</a></p>
+                <p id="section-toc.1-1.3.2.1.1" class="keepWithNext"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-terminology" class="internal xref">Terminology</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2">
                 <p id="section-toc.1-1.3.2.2.1"><a href="#section-3.2" class="auto internal xref">3.2</a>.  <a href="#name-protocol-changes-overview" class="internal xref">Protocol Changes Overview</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2.2.1">
-                    <p id="section-toc.1-1.3.2.2.2.1.1"><a href="#section-3.2.1" class="auto internal xref">3.2.1</a>.  <a href="#name-joining-a-group-with-expand" class="internal xref">Joining a Group with expandable trees</a></p>
+                    <p id="section-toc.1-1.3.2.2.2.1.1"><a href="#section-3.2.1" class="auto internal xref">3.2.1</a>.  <a href="#name-joining-a-group-with-expand" class="internal xref">Joining a Group with expandable paths</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.2.2.2">
                     <p id="section-toc.1-1.3.2.2.2.2.1"><a href="#section-3.2.2" class="auto internal xref">3.2.2</a>.  <a href="#name-processing-proposals" class="internal xref">Processing Proposals</a></p>
@@ -1183,6 +1183,9 @@ svg :is([fill="white"], [fill^="#fff"]) {
                     <p id="section-toc.1-1.3.2.2.2.5.1"><a href="#section-3.2.5" class="auto internal xref">3.2.5</a>.  <a href="#name-server-changes" class="internal xref">Server Changes</a></p>
 </li>
                 </ul>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.3">
+                <p id="section-toc.1-1.3.2.3.1"><a href="#section-3.3" class="auto internal xref">3.3</a>.  <a href="#name-expandable-paths-extension" class="internal xref">Expandable Paths Extension</a></p>
 </li>
             </ul>
 </li>
@@ -1204,7 +1207,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
                 <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-proof-of-membership" class="internal xref">Proof of Membership</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.3">
-                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-verifying-expandable-trees" class="internal xref">Verifying Expandable Trees</a></p>
+                <p id="section-toc.1-1.4.2.3.1"><a href="#section-4.3" class="auto internal xref">4.3</a>.  <a href="#name-verifying-expandable-paths" class="internal xref">Verifying Expandable Paths</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.4">
                 <p id="section-toc.1-1.4.2.4.1"><a href="#section-4.4" class="auto internal xref">4.4</a>.  <a href="#name-retrieving-expandable-tree-" class="internal xref">Retrieving Expandable Tree Information</a></p>
@@ -1268,7 +1271,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 <a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
       </h2>
 <p id="section-1-1">This draft defines two modifications to the main MLS protocol in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-1-1" class="pilcrow">¶</a></p>
-<p id="section-1-2">First, it defines expandable trees in Section <a href="#expandable-tree" class="auto internal xref">Section 4</a> that allow
+<p id="section-1-2">First, it defines expandable paths in Section <a href="#expandable-tree" class="auto internal xref">Section 4</a> that allow
 retrieving and storing only the minimally required tree information to participate
 in an MLS group.
 An expandable tree can always be completed to a full MLS tree as described in
@@ -1293,54 +1296,28 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
       <h2 id="name-mls-groups-with-expandable-">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-mls-groups-with-expandable-" class="section-name selfRef">MLS Groups with Expandable Trees</a>
       </h2>
-<p id="section-3-1">MLS groups that support expandable trees must use the <code>expandable_trees</code> extension
-in the required capabilities.
-When this extension is present in the group context all messages, except for
-application messages, <span class="bcp14">MUST</span> use public messages.<a href="#section-3-1" class="pilcrow">¶</a></p>
-<div id="expandable-trees-extension">
+<p id="section-3-1">MLS groups with expandable paths allow light clients to achieve linear computation
+and communication complexity by using expandable paths and receiver specific
+commits.
+In turn, these clients can only commit after upgrading to full clients (<a href="#committing-with-an-expandable-tree" class="auto internal xref">Section 4.6</a>).<a href="#section-3-1" class="pilcrow">¶</a></p>
+<div id="terminology">
 <section id="section-3.1">
-        <h3 id="name-expandable-trees-extension">
-<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-expandable-trees-extension" class="section-name selfRef">Expandable Trees Extension</a>
+        <h3 id="name-terminology">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-terminology" class="section-name selfRef">Terminology</a>
         </h3>
-<p id="section-3.1-1">The <code>expandable_trees</code> group context extension is used to signal that the group
-supports clients with expandable trees.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
-<div class="lang-tls sourcecode" id="section-3.1-2">
-<pre>
-enum ExpandableClientType {
-  reserved(0),
-  no_upgrade(1),
-  resync_upgrade(2),
-  self_upgrade(3),
-  any_upgrade(4),
-}
-
-struct {
-  ExpandableClientType expandable;
-} ExpandableTreesExtension;
-</pre><a href="#section-3.1-2" class="pilcrow">¶</a>
-</div>
-<p id="section-3.1-3">The extension must be present and set in the required capabiblities of a group
-when supporting clients with expandable trees.
-It defines ways such a client may upgrade to a full client.<a href="#section-3.1-3" class="pilcrow">¶</a></p>
+<p id="section-3.1-1">This document introduces the following new concepts<a href="#section-3.1-1" class="pilcrow">¶</a></p>
 <ul class="normal">
-<li class="normal" id="section-3.1-4.1">
-            <code>no_upgrade</code> does not allow expandable clients to update to full MLS.<a href="#section-3.1-4.1" class="pilcrow">¶</a>
+<li class="normal" id="section-3.1-2.1">Expandable Path: An expandable path is a direct path from a leaf node to the root
+with full nodes along the path, and parent and tree hashes on the co-path.<a href="#section-3.1-2.1" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-3.1-4.2">
-            <code>resync_upgrade</code> allows clients to upgrade to full MLS by using an external commit.
-The resync removes the old client from the group and adds a new client with full MLS.<a href="#section-3.1-4.2" class="pilcrow">¶</a>
+          <li class="normal" id="section-3.1-2.2">Partial Commit: A partial commit is a commit that the server stripped down to
+hold only the encrypted path secret for the receiver.
+The framed content signature on partial commits is not valid.<a href="#section-3.1-2.2" class="pilcrow">¶</a>
 </li>
-          <li class="normal" id="section-3.1-4.3">
-            <code>self_upgrade</code> allows clients to upgrade to full MLS by retrieving the full tree
-from the server. Together with the signed group info of the current epoch the
-client "silently" upgrades to full MLS with security equivalent to joining a new
-group. The client <span class="bcp14">MUST</span> perform all checks from Section 12.4.3.1 <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-3.1-4.3" class="pilcrow">¶</a>
-</li>
-          <li class="normal" id="section-3.1-4.4">
-            <code>any_upgrade</code> allows clients to use either of the two upgrade mechanisms.<a href="#section-3.1-4.4" class="pilcrow">¶</a>
+          <li class="normal" id="section-3.1-2.3">Scalable client: A scalable client is a client that does not know the full MLS
+tree but only its own expandable path.<a href="#section-3.1-2.3" class="pilcrow">¶</a>
 </li>
         </ul>
-<p id="section-3.1-5">TODO: Add IANA number for the extension.<a href="#section-3.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="protocol-changes-overview">
@@ -1348,13 +1325,17 @@ group. The client <span class="bcp14">MUST</span> perform all checks from Sectio
         <h3 id="name-protocol-changes-overview">
 <a href="#section-3.2" class="section-number selfRef">3.2. </a><a href="#name-protocol-changes-overview" class="section-name selfRef">Protocol Changes Overview</a>
         </h3>
-<p id="section-3.2-1">The changes are primarily for clients that want to use expandable trees.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
-<div id="joining-a-group-with-expandable-trees">
+<p id="section-3.2-1">MLS groups that support expandable paths must use the <code>expandable_paths</code> extension
+(<a href="#expandable-paths-extension" class="auto internal xref">Section 3.3</a>) in the required capabilities.
+When this extension is present in the group context all messages, except for
+application messages, <span class="bcp14">MUST</span> use public messages.<a href="#section-3.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2-2">The changes are primarily for clients that want to use expandable paths.<a href="#section-3.2-2" class="pilcrow">¶</a></p>
+<div id="joining-a-group-with-expandable-paths">
 <section id="section-3.2.1">
           <h4 id="name-joining-a-group-with-expand">
-<a href="#section-3.2.1" class="section-number selfRef">3.2.1. </a><a href="#name-joining-a-group-with-expand" class="section-name selfRef">Joining a Group with expandable trees</a>
+<a href="#section-3.2.1" class="section-number selfRef">3.2.1. </a><a href="#name-joining-a-group-with-expand" class="section-name selfRef">Joining a Group with expandable paths</a>
           </h4>
-<p id="section-3.2.1-1">When joining a group as a client with expandable trees, the client downloads
+<p id="section-3.2.1-1">When joining a group as a client with expandable paths, the client downloads
 only it's own expandable path and the committer's proof of membership.
 The sender's proof of membership is discarded after being checked such that only
 the client's direct, expandable path is stored.<a href="#section-3.2.1-1" class="pilcrow">¶</a></p>
@@ -1365,8 +1346,9 @@ the client's direct, expandable path is stored.<a href="#section-3.2.1-1" class=
           <h4 id="name-processing-proposals">
 <a href="#section-3.2.2" class="section-number selfRef">3.2.2. </a><a href="#name-processing-proposals" class="section-name selfRef">Processing Proposals</a>
           </h4>
-<p id="section-3.2.2-1">Proposals are ignored and not processed at all.
-They are only stored to apply when commits use proposals by reference.<a href="#section-3.2.2-1" class="pilcrow">¶</a></p>
+<p id="section-3.2.2-1">Proposals are not processed at all.
+They are only stored to apply when commits use proposals by reference and to know
+the proposal sender.<a href="#section-3.2.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="processing-commits">
@@ -1392,7 +1374,7 @@ the sender's proof of membership, the signed group info, and the confirmation ta
           <h4 id="name-changes-for-committers">
 <a href="#section-3.2.4" class="section-number selfRef">3.2.4. </a><a href="#name-changes-for-committers" class="section-name selfRef">Changes for committers</a>
           </h4>
-<p id="section-3.2.4-1">In groups with <code>expandable_trees</code> support, committer must send a signed group
+<p id="section-3.2.4-1">In groups with <code>expandable_paths</code> support, committer <span class="bcp14">MUST</span> send a signed group
 info with every commit.<a href="#section-3.2.4-1" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1406,6 +1388,52 @@ and provide endpoints for clients to retrieve expandable direct paths, the signe
 group info, and partial commits.<a href="#section-3.2.5-1" class="pilcrow">¶</a></p>
 </section>
 </div>
+</section>
+</div>
+<div id="expandable-paths-extension">
+<section id="section-3.3">
+        <h3 id="name-expandable-paths-extension">
+<a href="#section-3.3" class="section-number selfRef">3.3. </a><a href="#name-expandable-paths-extension" class="section-name selfRef">Expandable Paths Extension</a>
+        </h3>
+<p id="section-3.3-1">The <code>expandable_paths</code> group context extension is used to signal that the group
+supports clients with expandable paths.<a href="#section-3.3-1" class="pilcrow">¶</a></p>
+<div class="lang-tls sourcecode" id="section-3.3-2">
+<pre>
+enum ExpandableClientType {
+  reserved(0),
+  no_upgrade(1),
+  resync_upgrade(2),
+  self_upgrade(3),
+  any_upgrade(4),
+}
+
+struct {
+  ExpandableClientType expandable;
+} ExpandablePathsExtension;
+</pre><a href="#section-3.3-2" class="pilcrow">¶</a>
+</div>
+<p id="section-3.3-3">The extension must be present and set in the required capabilities of a group
+when supporting clients with expandable paths.
+It further defines ways scalable clients may upgrade to a full client.<a href="#section-3.3-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3.3-4.1">
+            <code>no_upgrade</code> does not allow expandable clients to update to full MLS.<a href="#section-3.3-4.1" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.3-4.2">
+            <code>resync_upgrade</code> allows clients to upgrade to full MLS by using an external commit.
+The resync removes the old client from the group and adds a new client with full MLS.<a href="#section-3.3-4.2" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.3-4.3">
+            <code>self_upgrade</code> allows clients to upgrade to full MLS by retrieving the full tree
+from the server. Together with the signed group info of the current epoch the
+client "silently" upgrades to full MLS with security equivalent to joining a new
+group. The client <span class="bcp14">MUST</span> perform all checks from Section 12.4.3.1 <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>.<a href="#section-3.3-4.3" class="pilcrow">¶</a>
+</li>
+          <li class="normal" id="section-3.3-4.4">
+            <code>any_upgrade</code> allows clients to use either of the two upgrade mechanisms.<a href="#section-3.3-4.4" class="pilcrow">¶</a>
+</li>
+        </ul>
+<p id="section-3.3-5">TODO: Add IANA number for the extension.<a href="#section-3.3-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1484,7 +1512,7 @@ are updated as follows.<a href="#section-4.1.1-1" class="pilcrow">¶</a></p>
 </li>
             <li id="section-4.1.1-2.2">Verify the sender's membership (see <a href="#proof-of-membership" class="auto internal xref">Section 4.2</a>).<a href="#section-4.1.1-2.2" class="pilcrow">¶</a>
 </li>
-            <li id="section-4.1.1-2.3">Check the own direct path to the root (see <a href="#verifying-expandable-trees" class="auto internal xref">Section 4.3</a>).<a href="#section-4.1.1-2.3" class="pilcrow">¶</a>
+            <li id="section-4.1.1-2.3">Check the own direct path to the root (see <a href="#verifying-expandable-paths" class="auto internal xref">Section 4.3</a>).<a href="#section-4.1.1-2.3" class="pilcrow">¶</a>
 </li>
             <li id="section-4.1.1-2.4">Do <em>not</em> verify leaves in the tree.<a href="#section-4.1.1-2.4" class="pilcrow">¶</a>
 </li>
@@ -1515,13 +1543,13 @@ the checks are updated as follows.<a href="#section-4.1.2-1" class="pilcrow">¶<
         </h3>
 <p id="section-4.2-1">To verify the group membership of the sender of a commit, the receiver with an
 expandable tree checks the sender's leaf (see Section 7.3 <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>), as
-well as the correctness of the tree as described in <a href="#verifying-expandable-trees" class="auto internal xref">Section 4.3</a>.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+well as the correctness of the tree as described in <a href="#verifying-expandable-paths" class="auto internal xref">Section 4.3</a>.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
-<div id="verifying-expandable-trees">
+<div id="verifying-expandable-paths">
 <section id="section-4.3">
-        <h3 id="name-verifying-expandable-trees">
-<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-verifying-expandable-trees" class="section-name selfRef">Verifying Expandable Trees</a>
+        <h3 id="name-verifying-expandable-paths">
+<a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-verifying-expandable-paths" class="section-name selfRef">Verifying Expandable Paths</a>
         </h3>
 <p id="section-4.3-1">To verify the correctness of an expandable tree the client checks its tree hash
 and parent hashes.
@@ -1560,7 +1588,7 @@ the sender's direct path to check its membership.<a href="#section-4.4.1-2" clas
 <a href="#section-4.4.2" class="section-number selfRef">4.4.2. </a><a href="#name-expandable-tree-from-the-se" class="section-name selfRef">Expandable Tree from the Sender</a>
           </h4>
 <p id="section-4.4.2-1">When the delivery service does not provide the necessary endpoints to query the
-expandable trees, the sender can include it into the <code>GroupInfo</code> extensions in
+expandable paths, the sender can include it into the <code>GroupInfo</code> extensions in
 the <code>Welcome</code> message.<a href="#section-4.4.2-1" class="pilcrow">¶</a></p>
 </section>
 </div>
@@ -1612,7 +1640,7 @@ Therefore, if a client with an expandable tree wants to commit, it first has to
 retrieve the full tree from the server.
 Because a client with an expandable tree is not able to fully verify incoming
 proposals, it <span class="bcp14">MUST NOT</span> commit to proposals it received while not holding a full tree.
-A client that is upgrading from expandable trees to a full MLS tree is therefore
+A client that is upgrading from expandable paths to a full MLS tree is therefore
 considered to be a new client that has no knowledge of proposals before it joined.
 Note that this restriction can not be enforced.
 However, since each client in <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span> must check the proposals, a misbehaving
@@ -1682,7 +1710,7 @@ struct {
 } XCommit;
 </pre><a href="#section-5-6" class="pilcrow">¶</a>
 </div>
-<p id="section-5-7">Similar to checking expandable trees (<a href="#verifying-expandable-trees" class="auto internal xref">Section 4.3</a>) the receiver
+<p id="section-5-7">Similar to checking expandable paths (<a href="#verifying-expandable-paths" class="auto internal xref">Section 4.3</a>) the receiver
 of an <code>XCommit</code> <span class="bcp14">MUST</span> verify the parent hash value on each node by using
 <code>original_tree_hash</code> of the co-path nodes, and the tree hash of the new tree.<a href="#section-5-7" class="pilcrow">¶</a></p>
 <div id="applying-receiver-specific-commits">
