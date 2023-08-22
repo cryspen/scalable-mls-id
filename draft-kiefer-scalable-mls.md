@@ -133,6 +133,7 @@ the client's direct, expandable path is stored.
 
 ### Processing Proposals
 Proposals are ignored and not processed at all.
+They are only stored to apply when commits use proposals by reference.
 
 ### Processing Commits
 When processing a commit, the client retrieves
