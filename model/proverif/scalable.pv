@@ -83,6 +83,9 @@ table passive_group_state(client,expandable_state).
 (* Local Group State at each Active Member: (expandable_state, full_tree, pending_proposals) *)
 table active_group_state(client,expandable_state,bitstring,bitstring).
 
+(* Updated Group State at each Active Member: (expandable_state, full_tree, pending_proposals) *)
+table updated_group_state(client,expandable_state,bitstring,bitstring).
+(* Note: we separate active and updated state to avoid recursion *)
 
 (*-----------------------------------*)
 (* Security Model and Properties     *)
@@ -117,10 +120,12 @@ event Recv(client,group_context,bitstring).
 event Compromised(client).
 
 (* Reachability Queries for Various Events *)
-query p:client, ctx:group_context, q:client;
+query p:client, ctx:group_context, q:client, m:bitstring;
       event(Created(p,ctx));
       event(Member(p,ctx,q));
       event(Joined(q,ctx,p));
+      event(Send(p,ctx,m));
+      event(Recv(p,ctx,m));
       event(Compromised(q)).
 
 (* Checking if a group secret can ever be known to the adversary *)
@@ -153,14 +158,16 @@ query ctx:group_context, m:bitstring, p:client, q:client, u:client, v:client;
       event(Send(p,ctx,m));
       event(Recv(q,ctx,m)) ==>
       (event(Send(p,ctx,m)) ||
-       (event(Member(u,ctx,v)) && event(Compromised(v)))).
+       (event(Compromised(p)) || 
+       (event(Member(u,ctx,v)) && event(Compromised(v))))).
 
 (* Application Message Confidentiality *)
 query ctx:group_context, m:bitstring, p:client, q:client, u:client, v:client;
       attacker(app_message(p,ctx));
       attacker(app_message(p,ctx)) ==>
       (event(Send(p,ctx,app_message(p,ctx))) &&
-       (event(Member(u,ctx,v)) && event(Compromised(v)))).
+       (event(Compromised(p)) || 
+       (event(Member(u,ctx,v)) && event(Compromised(v))))).
 
 (*-----------------------------------*)
 (* Protocol Processes                *)
@@ -248,8 +255,26 @@ let passive_member(q:client) =
 	  insert passive_group_state(q,st)
        )
     )
+   ) |
+   (
+    get keys(=q,dk,sk) in
+    get passive_group_state(=q,ExpandableState(ctx,gs,=q)) in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    let m = app_message(q,ctx) in
+    event Send(q,ctx,m);
+    let enc_m = senc(gs,m) in (* Abstractly modeling TreeDEM *)
+    out (group_chan(id),enc_m)
+   ) |
+   (
+    get keys(=q,dk,sk) in
+    get passive_group_state(=q,ExpandableState(ctx,gs,=q)) in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    in (group_chan(id),enc_m:bitstring);
+    let m = sdec(gs,enc_m) in
+    event Recv(q,ctx,m)
    )
    .
+
 
 
 (* Main Process: any number of clients and members *)
