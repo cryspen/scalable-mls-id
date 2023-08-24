@@ -5,7 +5,7 @@
 Network Working Group                                          F. Kiefer
 Internet-Draft                                              K. Bhargavan
 Intended status: Informational                                   Cryspen
-Expires: 23 February 2024                                 22 August 2023
+Expires: 25 February 2024                                 24 August 2023
 
 
                               Scalable MLS
@@ -46,7 +46,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 23 February 2024.
+   This Internet-Draft will expire on 25 February 2024.
 
 Copyright Notice
 
