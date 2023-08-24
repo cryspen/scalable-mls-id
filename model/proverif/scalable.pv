@@ -144,7 +144,7 @@ query ctx:group_context, sec:bitstring, p:client, q:client;
        || event(Compromised(q))).
           (* Note: q's compromise should not matter if we do more checks *)
 
-(* Group State Agreement:
+(* Application Message Authenticaion and Group State Agreement:
    the group state at Q for G at epoch N must match that of the
    last application message sender, unless one of the members
    declared by the last updater is compromised *)
@@ -153,9 +153,14 @@ query ctx:group_context, m:bitstring, p:client, q:client, u:client, v:client;
       event(Send(p,ctx,m));
       event(Recv(q,ctx,m)) ==>
       (event(Send(p,ctx,m)) ||
-       (event(Member(u,ctx,v)) &&
-        (event(Compromised(u)) || event(Compromised(v))))).
+       (event(Member(u,ctx,v)) && event(Compromised(v)))).
 
+(* Application Message Confidentiality *)
+query ctx:group_context, m:bitstring, p:client, q:client, u:client, v:client;
+      attacker(app_message(p,ctx));
+      attacker(app_message(p,ctx)) ==>
+      (event(Send(p,ctx,app_message(p,ctx))) &&
+       (event(Member(u,ctx,v)) && event(Compromised(v)))).
 
 (*-----------------------------------*)
 (* Protocol Processes                *)
