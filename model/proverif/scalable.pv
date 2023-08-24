@@ -17,6 +17,11 @@ fun pdec(privkey,bitstring):symkey
 reduc forall sk:privkey,m:symkey;
       pdec(sk,penc(pk(sk),m)) = m.
 
+(* Symmetric Key Encryption *)
+fun senc(symkey,bitstring):bitstring.
+fun sdec(symkey,bitstring):bitstring
+reduc forall k:symkey,m:bitstring;
+      sdec(k,senc(k,m)) = m.
 
 (* Signatures *)
 type sigkey.
@@ -40,16 +45,20 @@ fun mac(symkey,bitstring):bitstring.
 
 (* Clients representing devices/members *)
 type client.
-
 (* Communication channel for each client *)
 fun chan(client):channel [data].
 
-(* GroupContext(group_id,epoch,tree_hash,confirmed_transcript_hash,extra) *)
+(* Group ID *)
 type group_id.
+
+(* Communication channel for each group *)
+fun group_chan(group_id):channel [data].
+
+(* GroupContext(group_id,epoch,tree_hash,confirmed_transcript_hash,extra) *)
 type group_context.
 fun GroupContext(group_id,nat,bitstring,bitstring,bitstring)
     : group_context [data].
-
+    
 (* GroupInfo(group_context,confirmation_tag,signature) *)
 fun GroupInfo(group_context,bitstring,bitstring): bitstring [data].
 (* Note: Ignoring leaf_index and extensions *)
@@ -85,6 +94,9 @@ free att:channel.
 (* A group secret created by a client in a particular group context *)
 fun group_secret(client,group_context,bitstring):symkey [private].
 
+(* A secret message created by a client in a particular group context *)
+fun app_message(client,group_context):bitstring [private].
+
 (* An event triggered by an active member when generating a group *)
 event Created(client,group_context).
 
@@ -94,6 +106,12 @@ event Member(client,group_context,client).
 (* An event triggered by a passive member when it is has become
    a member of a group in a certain epoch *)
 event Joined(client,group_context,client).
+
+(* An event triggered a client sends an application message *)
+event Send(client,group_context,bitstring).
+
+(* An event triggered a client accepts an application message *)
+event Recv(client,group_context,bitstring).
 
 (* An event triggered when the private keys of a client are compromised *)
 event Compromised(client).
@@ -125,6 +143,19 @@ query ctx:group_context, sec:bitstring, p:client, q:client;
       (event(Member(p,ctx,q)) || event(Compromised(p))
        || event(Compromised(q))).
           (* Note: q's compromise should not matter if we do more checks *)
+
+(* Group State Agreement:
+   the group state at Q for G at epoch N must match that of the
+   last application message sender, unless one of the members
+   declared by the last updater is compromised *)
+query ctx:group_context, m:bitstring, p:client, q:client, u:client, v:client;
+      event(Recv(q,ctx,m)) ==>
+      event(Send(p,ctx,m));
+      event(Recv(q,ctx,m)) ==>
+      (event(Send(p,ctx,m)) ||
+       (event(Member(u,ctx,v)) &&
+        (event(Compromised(u)) || event(Compromised(v))))).
+
 
 (*-----------------------------------*)
 (* Protocol Processes                *)
@@ -173,10 +204,29 @@ let active_member(p:client) =
     out (chan(q),(p,gi,enc_gs))
    )
    (* TODO: Send/Receive Commits and Ratcheting *)
+   |
+   (
+    get keys(=p,dk,sk) in
+    get active_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    let m = app_message(p,ctx) in
+    event Send(p,ctx,m);
+    let enc_m = senc(gs,m) in (* Abstractly modeling TreeDEM *)
+    out (group_chan(id),enc_m)
+   )
+   |
+   (
+    get keys(=p,dk,sk) in
+    get active_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    in (group_chan(id),enc_m:bitstring);
+    let m = sdec(gs,enc_m) in
+    event Recv(p,ctx,m)
+   )
    .
 
 
-(* A process for active members of groups *)
+(* A process for passive members of groups *)
 let passive_member(q:client) =
    (* Joining a group *)
    (
