@@ -19,11 +19,11 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "Scalable MLS"
-abbrev: "smls"
+title: "MLS with Lightweight Clients"
+abbrev: "lmls"
 category: info
 
-docname: draft-kiefer-scalable-mls-latest
+docname: draft-kiefer-light-mls-latest
 submissiontype: IETF  # also: "independent", "IAB", or "IRTF"
 number:
 date:
@@ -57,20 +57,40 @@ informative:
 
 --- abstract
 
-This document describes a scalable variant of the MLS protocol.
+This document describes a variant of the MLS protocol with lightweight clients
+that are passive in the protocol and only send application messages and proposals.
 
+Passive clients are advantageous on resource constrained devices or can be used
+to bootstrap clients lazily.
+The reduced complexity, which also results in a smaller implementation, makes
+light clients attractive for many scenarios.
 
 --- middle
 
 # Introduction
 
+This draft defines passive clients for MLS and required modifications on the
+infrastructure and full MLS clients.
+
+As such the document is structured as follows
+
+* {{mls-groups-with-passive-clients}} gives an overview of the changes compared
+  to {{!RFC9420}} and introduces terminology and concepts used throughout this document.
+* {{expandable-trees}} defines data structures used for passive clients.
+* {{active-members}} describes changes to {{!RFC9420}} compliant MLS clients.
+* {{deploying-light-mls}} describes requirements on the delivery service and discusses deployment
+  considerations.
+* {{passive-clients}} details the operation of passive clients
+* {{security-considerations}} discuss security implications for passive clients
+  and deployments that involve passive clients.
+
 This draft defines two modifications to the main MLS protocol in {{!RFC9420}}.
 
-First, it defines expandable paths in Section {{expandable-tree}} that allow
+First, it defines expandable paths in Section {{expandable-trees}} that allow
 retrieving and storing only the minimally required tree information to participate
 in an MLS group.
 An expandable tree can always be completed to a full MLS tree as described in
-Section {{committing-with-an-expandable-tree}}.
+Section {{committing-with-a-passive-client}}.
 
 Secondly, it defines receiver specific commits in Section {{receiver-specific-commits}}
 that reduce the data downloaded by clients for processing commits.
@@ -81,12 +101,12 @@ that reduce the data downloaded by clients for processing commits.
 {::boilerplate bcp14-tagged}
 
 
-# MLS Groups with Expandable Trees
+# MLS Groups with Passive Clients
 
-MLS groups with expandable paths allow light clients to achieve linear computation
+MLS groups with passive clients allow light clients to achieve linear computation
 and communication complexity by using expandable paths and receiver specific
 commits.
-In turn, these clients can only commit after upgrading to full clients ({{committing-with-an-expandable-tree}}).
+In turn, these clients can only commit after upgrading to full clients ({{committing-with-a-passive-client}}).
 
 ## Terminology
 This document introduces the following new concepts
@@ -96,12 +116,12 @@ This document introduces the following new concepts
 - Partial Commit: A partial commit is a commit that the server stripped down to
   hold only the encrypted path secret for the receiver.
   The framed content signature on partial commits is not valid.
-- Scalable client: A scalable client is a client that does not know the full MLS
+- Passive client: A passive client is a client that does not know the full MLS
   tree but only its own expandable path.
 
 ## Protocol Changes Overview
-MLS groups that support expandable paths must use the `expandable_paths` extension
-({{expandable-paths-extension}}) in the required capabilities.
+MLS groups that support passive clients must use the `passive_clients` extension
+({{passive-clients-extension}}) in the required capabilities.
 When this extension is present in the group context all messages, except for
 application messages, MUST use public messages.
 
@@ -130,7 +150,7 @@ the sender's proof of membership, the signed group info, and the confirmation ta
 
 ### Changes for committers
 
-In groups with `expandable_paths` support, committer MUST send a signed group
+In groups with `passive_clients` support, committer MUST send a signed group
 info with every commit.
 
 ### Server Changes
@@ -139,8 +159,8 @@ The server must track the public group state together with the signed group info
 and provide endpoints for clients to retrieve expandable direct paths, the signed
 group info, and partial commits.
 
-## Expandable Paths Extension
-The `expandable_paths` group context extension is used to signal that the group
+## Passive Clients Extension
+The `passive_clients` group context extension is used to signal that the group
 supports clients with expandable paths.
 
 ~~~tls
@@ -159,7 +179,7 @@ struct {
 
 The extension must be present and set in the required capabilities of a group
 when supporting clients with expandable paths.
-It further defines ways scalable clients may upgrade to a full client.
+It further defines ways passive clients may upgrade to a full client.
 
 - `no_upgrade` does not allow expandable clients to update to full MLS.
 - `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
@@ -172,7 +192,7 @@ It further defines ways scalable clients may upgrade to a full client.
 
 TODO: Add IANA number for the extension.
 
-# Expandable Tree
+# Expandable Trees
 An expandable tree is a modified ratchet tree as described in {{!RFC9420}}.
 An expandable tree stores only the direct path from the member to the root plus
 additional information about the co-path.
@@ -252,7 +272,7 @@ Check that the encryption keys of all received nodes are unique.
 The `ExpandableTree` is provided by the delivery service to the client on request.
 Alternatively, a client can send the `ExpandableTree` as extension in `Welcome`
 messages.
-See {{expandable-tree}} for details on the expandable tree extension.
+See {{expandable-trees}} for details on the expandable tree extension.
 
 ### Expandable Tree from the Deliver Service
 
@@ -299,31 +319,33 @@ struct {
 } ExpandableTree;
 ~~~
 
-## Committing with an expandable Tree
+## Committing with a Passive Client
 
-A client with an expandable *can not commit* because it doesn't know the necessary
+A passive client *can not commit* because it doesn't know the necessary
 public keys in the tree to encrypt to.
-Therefore, if a client with an expandable tree wants to commit, it first has to
-retrieve the full tree from the server.
-Because a client with an expandable tree is not able to fully verify incoming
+Therefore, if a passive client wants to commit, it first has to upgrade to full MLS.
+Because a passive client is not able to fully verify incoming
 proposals, it MUST NOT commit to proposals it received while not holding a full tree.
-A client that is upgrading from expandable paths to a full MLS tree is therefore
+A client that is upgrading to a full MLS tree is therefore
 considered to be a new client that has no knowledge of proposals before it joined.
 Note that this restriction can not be enforced.
 However, since each client in {{!RFC9420}} must check the proposals, a misbehaving
-client that upgraded from an expandable tree can only successfully commit bogus
+client that upgraded can only successfully commit bogus
 proposals when all other clients and the delivery service agree.
 
-A client that is upgrading to the full tree by requesting the full tree of the
-current epoch from the server.
-In order ensure that the tree is the expanded version of the expandable tree known
-to the client, the client MUST perform the following checks:
+The expandable paths extension ({{passive-clients-extension}}) defines the possible
+upgrade paths for passive clients.
 
-* Verify that the tree hash of the expandable tree and the full tree are equivalent.
-* Verify that all full nodes (`XNode`) in the expandable tree are equivalent to
-  the corresponding node in the full tree.
+In order to ensure that the tree retrieved from the server contains the expandable
+path known to the client, the upgrading client MUST perform the following checks:
+
+* Verify that the tree hash of the expandable path and the full tree are equivalent.
+* Verify that all full nodes (`XNode`) in the client's state are equivalent to
+  the corresponding nodes in the full tree.
 * Perform all checks on the tree as if joining the group with a `Welcome` message
 (see Section 12.4.3.1. in {{!RFC9420}}).
+
+Note that the client already checked the signed
 
 To retrieve the full tree, the delivery service must provide an end point,
 equivalent to the one used to retrieve the full tree for a new member that wants
@@ -380,6 +402,18 @@ When receiving an `XCommit`, the client applies it like a regular commit.
 
 Additionally, the client checks the membership of the committer as described in
 {{proof-of-membership}} using the `sender_path`.
+
+# Active Members
+
+TODO: changes for active members - send group info message
+
+# Deploying Light MLS
+
+TODO:
+- describe server changes
+- deployment considerations
+
+# Passive Clients
 
 # Security Considerations
 
