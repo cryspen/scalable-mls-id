@@ -8,12 +8,19 @@ Intended status: Informational                                   Cryspen
 Expires: 5 March 2024                                   2 September 2023
 
 
-                              Scalable MLS
-                    draft-kiefer-scalable-mls-latest
+                      MLS with Lightweight Clients
+                     draft-kiefer-light-mls-latest
 
 Abstract
 
-   This document describes a scalable variant of the MLS protocol.
+   This document describes a variant of the MLS protocol with
+   lightweight clients that are passive in the protocol and only send
+   application messages and proposals.
+
+   Passive clients are advantageous on resource constrained devices or
+   can be used to bootstrap clients lazily.  The reduced complexity,
+   which also results in a smaller implementation, makes light clients
+   attractive for many scenarios.
 
 About This Document
 
@@ -21,8 +28,7 @@ About This Document
 
    The latest revision of this draft can be found at
    https://example.com/LATEST.  Status information for this document may
-   be found at https://datatracker.ietf.org/doc/draft-kiefer-scalable-
-   mls/.
+   be found at https://datatracker.ietf.org/doc/draft-kiefer-light-mls/.
 
    Discussion of this document takes place on the WG Working Group
    mailing list (mailto:WG@example.com), which is archived at
@@ -66,7 +72,7 @@ Table of Contents
 
    1.  Introduction
    2.  Conventions and Definitions
-   3.  MLS Groups with Expandable Trees
+   3.  MLS Groups with Passive Clients
      3.1.  Terminology
      3.2.  Protocol Changes Overview
        3.2.1.  Joining a Group with expandable paths
@@ -74,8 +80,8 @@ Table of Contents
        3.2.3.  Processing Commits
        3.2.4.  Changes for committers
        3.2.5.  Server Changes
-     3.3.  Expandable Paths Extension
-   4.  Expandable Tree
+     3.3.  Passive Clients Extension
+   4.  Expandable Trees
      4.1.  Verifying Tree Validity
        4.1.1.  Joining a Group via Welcome Message
        4.1.2.  Commit
@@ -85,18 +91,42 @@ Table of Contents
        4.4.1.  Expandable Tree from the Deliver Service
        4.4.2.  Expandable Tree from the Sender
      4.5.  Expandable Tree
-     4.6.  Committing with an expandable Tree
+     4.6.  Committing with a Passive Client
        4.6.1.  Maintaining state
    5.  Receiver specific Commits
      5.1.  Applying receiver specific commits
-   6.  Security Considerations
-     6.1.  Comparison with RFC MLS
-   7.  IANA Considerations
-   8.  Normative References
+   6.  Active Members
+   7.  Deploying Light MLS
+   8.  Passive Clients
+   9.  Security Considerations
+     9.1.  Comparison with RFC MLS
+   10. IANA Considerations
+   11. Normative References
    Acknowledgments
    Authors' Addresses
 
 1.  Introduction
+
+   This draft defines passive clients for MLS and required modifications
+   on the infrastructure and full MLS clients.
+
+   As such the document is structured as follows
+
+   *  Section 3 gives an overview of the changes compared to [RFC9420]
+      and introduces terminology and concepts used throughout this
+      document.
+
+   *  Section 4 defines data structures used for passive clients.
+
+   *  Section 6 describes changes to [RFC9420] compliant MLS clients.
+
+   *  Section 7 describes requirements on the delivery service and
+      discusses deployment considerations.
+
+   *  Section 8 details the operation of passive clients
+
+   *  Section 9 discuss security implications for passive clients and
+      deployments that involve passive clients.
 
    This draft defines two modifications to the main MLS protocol in
    [RFC9420].
@@ -117,11 +147,11 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-3.  MLS Groups with Expandable Trees
+3.  MLS Groups with Passive Clients
 
-   MLS groups with expandable paths allow light clients to achieve
-   linear computation and communication complexity by using expandable
-   paths and receiver specific commits.  In turn, these clients can only
+   MLS groups with passive clients allow light clients to achieve linear
+   computation and communication complexity by using expandable paths
+   and receiver specific commits.  In turn, these clients can only
    commit after upgrading to full clients (Section 4.6).
 
 3.1.  Terminology
@@ -137,16 +167,15 @@ Table of Contents
       receiver.  The framed content signature on partial commits is not
       valid.
 
-   *  Scalable client: A scalable client is a client that does not know
+   *  Passive client: A passive client is a client that does not know
       the full MLS tree but only its own expandable path.
 
 3.2.  Protocol Changes Overview
 
-   MLS groups that support expandable paths must use the
-   expandable_paths extension (Section 3.3) in the required
-   capabilities.  When this extension is present in the group context
-   all messages, except for application messages, MUST use public
-   messages.
+   MLS groups that support passive clients must use the passive_clients
+   extension (Section 3.3) in the required capabilities.  When this
+   extension is present in the group context all messages, except for
+   application messages, MUST use public messages.
 
    The changes are primarily for clients that want to use expandable
    paths.
@@ -182,7 +211,7 @@ Table of Contents
 
 3.2.4.  Changes for committers
 
-   In groups with expandable_paths support, committer MUST send a signed
+   In groups with passive_clients support, committer MUST send a signed
    group info with every commit.
 
 3.2.5.  Server Changes
@@ -191,9 +220,9 @@ Table of Contents
    group info, and provide endpoints for clients to retrieve expandable
    direct paths, the signed group info, and partial commits.
 
-3.3.  Expandable Paths Extension
+3.3.  Passive Clients Extension
 
-   The expandable_paths group context extension is used to signal that
+   The passive_clients group context extension is used to signal that
    the group supports clients with expandable paths.
 
    enum ExpandableClientType {
@@ -210,7 +239,7 @@ Table of Contents
 
    The extension must be present and set in the required capabilities of
    a group when supporting clients with expandable paths.  It further
-   defines ways scalable clients may upgrade to a full client.
+   defines ways passive clients may upgrade to a full client.
 
    *  no_upgrade does not allow expandable clients to update to full
       MLS.
@@ -230,7 +259,7 @@ Table of Contents
 
    TODO: Add IANA number for the extension.
 
-4.  Expandable Tree
+4.  Expandable Trees
 
    An expandable tree is a modified ratchet tree as described in
    [RFC9420].  An expandable tree stores only the direct path from the
@@ -368,35 +397,38 @@ Table of Contents
      uint32 num_nodes;
    } ExpandableTree;
 
-4.6.  Committing with an expandable Tree
+4.6.  Committing with a Passive Client
 
-   A client with an expandable _can not commit_ because it doesn't know
-   the necessary public keys in the tree to encrypt to.  Therefore, if a
-   client with an expandable tree wants to commit, it first has to
-   retrieve the full tree from the server.  Because a client with an
-   expandable tree is not able to fully verify incoming proposals, it
-   MUST NOT commit to proposals it received while not holding a full
-   tree.  A client that is upgrading from expandable paths to a full MLS
-   tree is therefore considered to be a new client that has no knowledge
-   of proposals before it joined.  Note that this restriction can not be
+   A passive client _can not commit_ because it doesn't know the
+   necessary public keys in the tree to encrypt to.  Therefore, if a
+   passive client wants to commit, it first has to upgrade to full MLS.
+   Because a passive client is not able to fully verify incoming
+   proposals, it MUST NOT commit to proposals it received while not
+   holding a full tree.  A client that is upgrading to a full MLS tree
+   is therefore considered to be a new client that has no knowledge of
+   proposals before it joined.  Note that this restriction can not be
    enforced.  However, since each client in [RFC9420] must check the
-   proposals, a misbehaving client that upgraded from an expandable tree
-   can only successfully commit bogus proposals when all other clients
-   and the delivery service agree.
+   proposals, a misbehaving client that upgraded can only successfully
+   commit bogus proposals when all other clients and the delivery
+   service agree.
 
-   A client that is upgrading to the full tree by requesting the full
-   tree of the current epoch from the server.  In order ensure that the
-   tree is the expanded version of the expandable tree known to the
-   client, the client MUST perform the following checks:
+   The expandable paths extension (Section 3.3) defines the possible
+   upgrade paths for passive clients.
 
-   *  Verify that the tree hash of the expandable tree and the full tree
+   In order to ensure that the tree retrieved from the server contains
+   the expandable path known to the client, the upgrading client MUST
+   perform the following checks:
+
+   *  Verify that the tree hash of the expandable path and the full tree
       are equivalent.
 
-   *  Verify that all full nodes (XNode) in the expandable tree are
-      equivalent to the corresponding node in the full tree.
+   *  Verify that all full nodes (XNode) in the client's state are
+      equivalent to the corresponding nodes in the full tree.
 
    *  Perform all checks on the tree as if joining the group with a
       Welcome message (see Section 12.4.3.1. in [RFC9420]).
+
+   Note that the client already checked the signed
 
    To retrieve the full tree, the delivery service must provide an end
    point, equivalent to the one used to retrieve the full tree for a new
@@ -456,7 +488,17 @@ Table of Contents
    Additionally, the client checks the membership of the committer as
    described in Section 4.2 using the sender_path.
 
-6.  Security Considerations
+6.  Active Members
+
+   TODO: changes for active members - send group info message
+
+7.  Deploying Light MLS
+
+   TODO: - describe server changes - deployment considerations
+
+8.  Passive Clients
+
+9.  Security Considerations
 
    TODO Security
 
@@ -481,7 +523,7 @@ Table of Contents
       -  proof of membership (Section 4.2) ensures that the sender is in
          the correct subtree
 
-6.1.  Comparison with RFC MLS
+9.1.  Comparison with RFC MLS
 
    The main change compared to the protocol as specified in [RFC9420] is
    that the receiver of a Welcome or Commit message, with an expandable
@@ -500,11 +542,11 @@ Table of Contents
 
    *  Check the signature on the FramedContent.
 
-7.  IANA Considerations
+10.  IANA Considerations
 
    This document has no IANA actions.
 
-8.  Normative References
+11.  Normative References
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
