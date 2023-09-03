@@ -138,19 +138,19 @@ val compute_membership_proof_correct:
 let compute_membership_proof_correct #bytes #cb #tkt #l #i t li =
   compute_membership_proof_to_tree_hash t li
 
-val membership_proof_is_in_the_tree:
+val membership_proof_guarantees:
   #bytes:Type0 -> {|crypto_bytes bytes|} -> #tkt:treekem_types bytes ->
   #l:nat -> #i:tree_index l -> #li:leaf_index l i ->
   treesync bytes tkt l i -> membership_proof bytes tkt l i li ->
   bool
-let rec membership_proof_is_in_the_tree #bytes #cb #tkt #l #i #li t mp =
+let rec membership_proof_guarantees #bytes #cb #tkt #l #i #li t mp =
   match t, mp with
   | TLeaf oln, PLeaf ln ->
     oln = Some ln
   | TNode t_opn _ _, PNode (mp_opn, _) mp_next -> (
     let (child, _) = get_child_sibling t li in
     t_opn = mp_opn &&
-    membership_proof_is_in_the_tree child mp_next
+    membership_proof_guarantees child mp_next
   )
 
 val membership_proof_to_hash_input:
@@ -174,7 +174,7 @@ let membership_proof_to_hash_input #bytes #cb #tkt #l #i #li mp =
     })
 
 #push-options "--z3rlimit 50"
-val membership_proof_to_tree_hash_security:
+val membership_proof_to_tree_hash_security_aux:
   #bytes:Type0 -> {|crypto_bytes bytes|} -> #tkt:treekem_types bytes ->
   #l:nat -> #i:tree_index l -> #li:leaf_index l i ->
   #l':nat -> #i':tree_index l' ->
@@ -189,14 +189,14 @@ val membership_proof_to_tree_hash_security:
   (ensures (fun (b1, b2) ->
     (
       l == l' /\ i == i' /\
-      membership_proof_is_in_the_tree t mp
+      membership_proof_guarantees t mp
     ) \/ (
       length b1 < hash_max_input_length #bytes /\
       length b2 < hash_max_input_length #bytes /\
       hash_hash b1 == hash_hash b2 /\ ~(b1 == b2)
     )
   ))
-let rec membership_proof_to_tree_hash_security #bytes #cb #tkt #l #i #li #l' #i' t mp =
+let rec membership_proof_to_tree_hash_security_aux #bytes #cb #tkt #l #i #li #l' #i' t mp =
   ( // Don't know why this is useful, bad SMT encoding somewhere?
     match mp with
     | PLeaf lp -> ()
@@ -210,7 +210,7 @@ let rec membership_proof_to_tree_hash_security #bytes #cb #tkt #l #i #li #l' #i'
   parse_serialize_inv_lemma #bytes _ mp_hash_input;
   assert(length serialized_t_hash_input < hash_max_input_length #bytes);
   assert(length serialized_mp_hash_input < hash_max_input_length #bytes);
-  if l = l' && i = i' && membership_proof_is_in_the_tree t mp then
+  if l = l' && i = i' && membership_proof_guarantees t mp then
     (empty, empty)
   else if not (t_hash_input = mp_hash_input) then (
     (serialized_t_hash_input, serialized_mp_hash_input)
@@ -218,15 +218,15 @@ let rec membership_proof_to_tree_hash_security #bytes #cb #tkt #l #i #li #l' #i'
     match t, mp with
     | TNode _ left right, PNode _ mp_next -> (
       if is_left_leaf li then (
-        membership_proof_to_tree_hash_security left mp_next
+        membership_proof_to_tree_hash_security_aux left mp_next
       ) else (
-        membership_proof_to_tree_hash_security right mp_next
+        membership_proof_to_tree_hash_security_aux right mp_next
       )
     )
   )
 #pop-options
 
-val membership_proof_to_tree_hash_security_aux:
+val membership_proof_to_tree_hash_security:
   #bytes:Type0 -> {|crypto_bytes bytes|} -> #tkt:treekem_types bytes ->
   #l:nat -> #i:tree_index l -> #li:leaf_index l i ->
   #l':nat -> #i':tree_index l' ->
@@ -243,12 +243,12 @@ val membership_proof_to_tree_hash_security_aux:
   (ensures (fun (b1, b2) ->
     (
       l == l' /\ i == i' /\
-      membership_proof_is_in_the_tree t mp
+      membership_proof_guarantees t mp
     ) \/ (
       length b1 < hash_max_input_length #bytes /\
       length b2 < hash_max_input_length #bytes /\
       hash_hash b1 == hash_hash b2 /\ ~(b1 == b2)
     )
   ))
-let membership_proof_to_tree_hash_security_aux #bytes #cb #tkt #l #i #li #l' #i' root_tree_hash t mp =
-  membership_proof_to_tree_hash_security t mp
+let membership_proof_to_tree_hash_security #bytes #cb #tkt #l #i #li #l' #i' root_tree_hash t mp =
+  membership_proof_to_tree_hash_security_aux t mp
