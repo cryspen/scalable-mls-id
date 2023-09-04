@@ -103,12 +103,18 @@ fun app_message(client,group_context):bitstring [private].
 (* An event triggered by an active member when generating a group *)
 event Created(client,group_context).
 
+(* An event triggered by an active member when commiting a group update *)
+event Updated(client,group_context,group_context).
+
 (* An event triggered by an active member to declare that a client is a member of a group in a certain epoch *)
 event Member(client,group_context,client).
 
 (* An event triggered by a passive member when it is has become
    a member of a group in a certain epoch *)
 event Joined(client,group_context,client).
+
+(* An event triggered by a passive member when processing a group update *)
+event ProcessedUpdate(client,group_context,group_context,client).
 
 (* An event triggered a client sends an application message *)
 event Send(client,group_context,bitstring).
@@ -119,11 +125,13 @@ event Recv(client,group_context,bitstring).
 (* An event triggered when the private keys of a client are compromised *)
 event Compromised(client).
 
-(* Reachability Queries for Various Events *)
-query p:client, ctx:group_context, q:client, m:bitstring;
+(* Reachability Queries for Various Events: Sanity Check for Model *)
+query p:client, ctx:group_context, ctx_:group_context, q:client, m:bitstring;
       event(Created(p,ctx));
       event(Member(p,ctx,q));
       event(Joined(q,ctx,p));
+      event(Updated(q,ctx,ctx_));
+      event(ProcessedUpdate(q,ctx,ctx_,p));
       event(Send(p,ctx,m));
       event(Recv(p,ctx,m));
       event(Compromised(q)).
@@ -201,22 +209,51 @@ let active_member(p:client) =
     event Created(p,ctx);
     insert active_group_state(p,st,tree,empty)
    ) |
-   (* Sending the current group secret to the current members *)
+   (* Send the current group secret to the current members *)
    (
     (* We let the attacker choose who should be in the current group *)
     in (att,q:client);
     get keys(=p,dk,sk) in
     get active_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
     get clients(=q,ek,verk) in
+    (* We assume that the active member locally verifies that q is a member of the group *)
     event Member(p,ctx,q); (* Declare that q is a member of the group *)
     let enc_gs = penc(ek,gs) in
     let GroupContext(id,ep,th,txh,ex) = ctx in
     let confirmation_tag = mac(gs,txh) in
     let gi = GroupInfo(ctx,confirmation_tag,sign(sk,(ctx,confirmation_tag))) in
     out (chan(q),(p,gi,enc_gs))
-   )
-   (* TODO: Send/Receive Commits and Ratcheting *)
-   |
+   ) |
+   (* Commit a group change *)
+   (
+    (* We let the attacker choose most of our initial group context *)
+    in (att,(tree:bitstring,confirmed_transcript_hash:bitstring,extra:bitstring));
+    get keys(=p,dk,sk) in
+    get active_group_state(=p,ExpandableState(old_ctx,old_gs,=p),
+			   old_tree,old_proposals) in
+    let GroupContext(id,ep,th,txh,ex) = old_ctx in
+    let ctx = GroupContext(id,ep+1,H(tree),confirmed_transcript_hash,extra) in
+    new sec:bitstring;
+    let gs = group_secret(p,ctx,sec) in
+    event Updated(p,old_ctx,ctx);
+    insert updated_group_state(p,ExpandableState(ctx,gs,p),tree,empty)
+   ) |
+   (* Send the updated group secret to the current members *)
+   (
+    (* We let the attacker choose who should be in the current group *)
+    in (att,q:client);
+    get keys(=p,dk,sk) in
+    get updated_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
+    get clients(=q,ek,verk) in
+    (* We assume that the active member locally verifies that q is a member of the group *)
+    event Member(p,ctx,q); (* Declare that q is a member of the group *)
+    let enc_gs = penc(ek,gs) in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    let confirmation_tag = mac(gs,txh) in
+    let gi = GroupInfo(ctx,confirmation_tag,sign(sk,(ctx,confirmation_tag))) in
+    out (chan(q),(p,gi,enc_gs))
+   ) |
+   (* Send an application message *)
    (
     get keys(=p,dk,sk) in
     get active_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
@@ -225,8 +262,8 @@ let active_member(p:client) =
     event Send(p,ctx,m);
     let enc_m = senc(gs,m) in (* Abstractly modeling TreeDEM *)
     out (group_chan(id),enc_m)
-   )
-   |
+   ) |
+   (* Receive an application message *)
    (
     get keys(=p,dk,sk) in
     get active_group_state(=p,ExpandableState(ctx,gs,=p),tree,proposals) in
@@ -240,7 +277,7 @@ let active_member(p:client) =
 
 (* A process for passive members of groups *)
 let passive_member(q:client) =
-   (* Joining a group *)
+   (* Join a group *)
    (
     in (chan(q),(p:client,gi:bitstring,enc_gs:bitstring));
     get clients(=p,ek,verk) in
@@ -256,6 +293,24 @@ let passive_member(q:client) =
        )
     )
    ) |
+   (* Process a group update *)
+   (
+    in (chan(q),(p:client,gi:bitstring,enc_gs:bitstring));
+    get passive_group_state(=q,ExpandableState(old_ctx,old_gs,=q)) in
+    get clients(=p,ek,verk) in
+    get keys(=q,dk,sk) in
+    let GroupInfo(ctx,tag,sg) = gi in
+    let GroupContext(id,ep,th,txh,ex) = ctx in
+    let gs = pdec(dk,enc_gs) in
+    if tag = mac(gs,txh) then (
+       if verify(verk,(ctx,tag),sg) then (
+          event ProcessedUpdate(q,ctx,old_ctx,p);
+	  let st = ExpandableState(ctx,gs,p) in
+	  insert passive_group_state(q,st)
+       )
+    )
+   ) |
+   (* Send an application message *)
    (
     get keys(=q,dk,sk) in
     get passive_group_state(=q,ExpandableState(ctx,gs,=q)) in
@@ -265,6 +320,7 @@ let passive_member(q:client) =
     let enc_m = senc(gs,m) in (* Abstractly modeling TreeDEM *)
     out (group_chan(id),enc_m)
    ) |
+   (* Receive an application message *)
    (
     get keys(=q,dk,sk) in
     get passive_group_state(=q,ExpandableState(ctx,gs,=q)) in
