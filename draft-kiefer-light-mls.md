@@ -84,29 +84,30 @@ As such the document is structured as follows
 * {{security-considerations}} discuss security implications for passive clients
   and deployments that involve passive clients.
 
-This draft defines two modifications to the main MLS protocol in {{!RFC9420}}.
+The design of MLS in {{!RFC9420}} implicitly requires all members to download
+and check a significant amount of cryptographic information, resulting in high
+latency and performance bottlenecks at new members seeking to join a large group.
 
-First, it defines expandable paths in Section {{expandable-trees}} that allow
-retrieving and storing only the minimally required tree information to participate
-in an MLS group.
-An expandable tree can always be completed to a full MLS tree as described in
-Section {{committing-with-a-passive-client}}.
+This document defines a modified MLS client for the protocol from {{!RFC9420}}
+that has logarithmic communication and computation complexity.
 
-Secondly, it defines receiver specific commits in Section {{receiver-specific-commits}}
-that reduce the data downloaded by clients for processing commits.
-
+This document does not change the structure of the MLS tree, or the contents of
+messages sent in the course of an MLS session.
+It only specifies the local state stored at light clients, and changes how each
+recipient downloads and checks group message.
+Furthermore, the changes only affect the component of MLS that manages,
+synchronizes, and authenticates public group state.
 
 # Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
 
-
 # MLS Groups with Passive Clients
 
-MLS groups with passive clients allow light clients to achieve linear computation
-and communication complexity by using expandable paths and receiver specific
-commits.
-In turn, these clients can only commit after upgrading to full clients ({{committing-with-a-passive-client}}).
+MLS groups with passive clients allow light clients to achieve logarithmic computation
+and communication complexity by using expandable paths and partial commits.
+In turn, these clients can only commit after upgrading to full clients
+({{committing-with-a-passive-client}}).
 
 ## Terminology
 This document introduces the following new concepts
@@ -118,6 +119,8 @@ This document introduces the following new concepts
   The framed content signature on partial commits is not valid.
 - Passive client: A passive client is a client that does not know the full MLS
   tree but only its own expandable path.
+- Active client: An active client is conversely a client that is running the full
+  MLS protocol from {{!RFC9420}}.
 
 ## Protocol Changes Overview
 MLS groups that support passive clients must use the `passive_clients` extension
@@ -158,39 +161,6 @@ info with every commit.
 The server must track the public group state together with the signed group info,
 and provide endpoints for clients to retrieve expandable direct paths, the signed
 group info, and partial commits.
-
-## Passive Clients Extension
-The `passive_clients` group context extension is used to signal that the group
-supports clients with expandable paths.
-
-~~~tls
-enum ExpandableClientType {
-  reserved(0),
-  no_upgrade(1),
-  resync_upgrade(2),
-  self_upgrade(3),
-  any_upgrade(4),
-}
-
-struct {
-  ExpandableClientType expandable;
-} ExpandablePathsExtension;
-~~~
-
-The extension must be present and set in the required capabilities of a group
-when supporting clients with expandable paths.
-It further defines ways passive clients may upgrade to a full client.
-
-- `no_upgrade` does not allow expandable clients to update to full MLS.
-- `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
-  The resync removes the old client from the group and adds a new client with full MLS.
-- `self_upgrade` allows clients to upgrade to full MLS by retrieving the full tree
-  from the server. Together with the signed group info of the current epoch the
-  client "silently" upgrades to full MLS with security equivalent to joining a new
-  group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
-- `any_upgrade` allows clients to use either of the two upgrade mechanisms.
-
-TODO: Add IANA number for the extension.
 
 # Expandable Trees
 An expandable tree is a modified ratchet tree as described in {{!RFC9420}}.
@@ -361,6 +331,39 @@ tree again.
 
 If the client does not expect to commit regularly, only the expandable tree should
 be kept after a commit.
+
+## Passive Clients Extension
+The `passive_clients` group context extension is used to signal that the group
+supports clients with expandable paths.
+
+~~~tls
+enum ExpandableClientType {
+  reserved(0),
+  no_upgrade(1),
+  resync_upgrade(2),
+  self_upgrade(3),
+  any_upgrade(4),
+}
+
+struct {
+  ExpandableClientType expandable;
+} ExpandablePathsExtension;
+~~~
+
+The extension must be present and set in the required capabilities of a group
+when supporting clients with expandable paths.
+It further defines ways passive clients may upgrade to a full client.
+
+- `no_upgrade` does not allow expandable clients to update to full MLS.
+- `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
+  The resync removes the old client from the group and adds a new client with full MLS.
+- `self_upgrade` allows clients to upgrade to full MLS by retrieving the full tree
+  from the server. Together with the signed group info of the current epoch the
+  client "silently" upgrades to full MLS with security equivalent to joining a new
+  group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
+- `any_upgrade` allows clients to use either of the two upgrade mechanisms.
+
+TODO: Add IANA number for the extension.
 
 # Receiver specific Commits
 
