@@ -1,0 +1,257 @@
+(*************************************)
+(* An abstract model of Scalable MLS *)
+(*************************************)
+
+
+(*-----------------------------------*)
+(* A Symbolic Cryptographic Model    *)
+(*-----------------------------------*)
+
+(* Public Key Encryption *)
+type privkey.
+type pubkey.
+type symkey.
+fun pk(privkey):pubkey.
+fun pk2b(pubkey):bitstring [data].
+fun penc(pubkey,symkey):bitstring.
+fun pdec(privkey,bitstring):symkey
+reduc forall sk:privkey,m:symkey;
+      pdec(sk,penc(pk(sk),m)) = m.
+
+(* Symmetric Key Encryption *)
+fun senc(symkey,bitstring):bitstring.
+fun sdec(symkey,bitstring):bitstring
+reduc forall k:symkey,m:bitstring;
+      sdec(k,senc(k,m)) = m.
+
+(* Signatures *)
+type sigkey.
+type verifkey.
+fun vk(sigkey):verifkey.
+fun sign(sigkey,bitstring):bitstring.
+fun verify(verifkey,bitstring,bitstring):bool
+reduc forall sk:sigkey,m:bitstring;
+      verify(vk(sk),m,sign(sk,m)) = true.
+
+(* Hashing *)
+free empty:bitstring.
+free zero:bitstring.
+free one:bitstring.
+fun H(bitstring):bitstring.
+
+(* Key Derivation *)
+fun kdf(symkey,bitstring):symkey.
+
+(* Macing *)
+fun mac(symkey,bitstring):bitstring.
+
+(*-----------------------------------*)
+(* Abstract State for Scalable MLS   *)
+(*-----------------------------------*)
+
+(* Clients representing devices/members *)
+type client.
+(* Communication channel for each client *)
+fun chan(client):channel [data].
+
+(* Group ID *)
+type group_id.
+
+(* Communication channel for each group *)
+fun group_chan(group_id):channel [data].
+
+(* KeyPackage(credential,verification_key,init_key,signature) *)
+type key_package.
+fun KeyPackage(client,verifkey,pubkey,bitstring)
+    : key_package [data].
+
+(* Welcome(encrypted_secret,group_info) *)
+fun Welcome(bitstring,bitstring) : bitstring [data].
+
+(* Simple two leaf tree *)
+fun Tree(client,pubkey,client):bitstring [data].
+
+(* GroupContext(group_id,epoch,tree_hash,confirmed_transcript_hash,extra) *)
+type group_context.
+fun GroupContext(group_id,nat,bitstring,bitstring,bitstring)
+    : group_context [data].
+    
+(* GroupInfo(group_context,confirmation_tag,signature) *)
+fun GroupInfo(group_context,bitstring,bitstring): bitstring [data].
+(* Note: Ignoring leaf_index and extensions *)
+
+
+(* Global PKI maintained by some AS *)
+(* We assume that each client has a encryption keypair and a signature keypair *)
+
+(* A global table that any client can query to get the public keys of another client *)
+table clients(client,pubkey,verifkey).
+
+(* A local table at each client for it to retrieve its private keys *)
+table keys(client,privkey,sigkey).
+
+(*-----------------------------------*)
+(* Security Model and Properties     *)
+(*-----------------------------------*)
+
+(* A channel for the attacker *)
+free att:channel.
+
+(* An event triggered when the private keys of a client are compromised *)
+event Compromised(client).
+
+(*-----------------------------------*)
+(* Protocol Processes                *)
+(*-----------------------------------*)
+
+(* A process to create a new client *)
+let create_client(p:client) =
+    new dk:privkey;
+    new sk:sigkey;
+    insert keys(p,dk,sk);
+    insert clients(p,pk(dk),vk(sk)).
+
+(* A process to compromise an existing client *)
+let compromise_client(p:client) =
+    get keys(=p,dk,sk) in
+    event Compromised(p);
+    out (att,(dk,sk)).
+
+
+(* MLS-LIKE Protocol:
+   I -> R: I, KeyPackage(cred,pkI,pkX,...,sign(skI, pkX))
+   R -> I: R, Welcome(penc(pkX,s),
+                      senc(s,GroupInfo(Ctx(I,R),
+                                       mac(s,Ctx(I,R,pk(s))),
+                                       sign(skR,Ctx(I,R,pk(s)),mac(s,...)))))
+           // AKE ends for I
+   I -> R: senc(s,m) // AKE ends for R - confirmation
+   R <-> I: senc(s,m')...
+
+   ABSTRACT PROTOCOL:
+   I -> R: I, (cred,pkI,pkX,...,sign(skI, pkX))
+   R -> I: R, Welcome(sign(skR, encap(pkX,s)), mac(s,(I,R)))
+           // AKE ends for I
+   I -> R: senc(s,m) // AKE ends for R - confirmation
+   R <-> I: senc(s,m')...
+*)
+
+(* Handshake Events *)
+event Init(client,client). 
+event InitDone(client,client,symkey). 
+event Respond(client,client,symkey). 
+event RespondDone(client,client,symkey). 
+
+(* Application Messages *)
+fun app_message(client,client,bitstring):bitstring [private].
+event AppSend(client,client,bitstring).
+event AppRecv(client,client,bitstring).
+
+(* Security Queries *)
+query i:client, r:client, ts:symkey, m:bitstring;
+      event(Init(i,r));
+      event(InitDone(i,r,ts));
+      event(Respond(r,i,ts));
+      event(RespondDone(r,i,ts));
+      event(AppSend(i,r,m));
+      event(AppRecv(i,r,m));
+      event(InitDone(i,r,ts)) ==> event(Respond(r,i,ts));
+      event(InitDone(i,r,ts)) ==>
+        (event(Respond(r,i,ts)) || event(Compromised(r)));
+      event(RespondDone(r,i,ts)) ==> event(InitDone(i,r,ts));
+      event(RespondDone(r,i,ts)) ==>
+        (event(InitDone(i,r,ts)) || event(Compromised(i)));
+      event(AppRecv(r,i,m)) ==> event(AppSend(i,r,m));
+      event(AppRecv(r,i,m)) ==>
+        (event(AppSend(i,r,m)) || event(Compromised(i))).
+
+      
+query i:client, r:client, m:bitstring;
+      attacker(app_message(i,r,m));
+      attacker(app_message(i,r,m)) ==> event(Compromised(i));
+      attacker(app_message(i,r,m)) ==> event(Compromised(r)).
+      
+(* A process for 2MLS Initiators *)
+let initiator(i:client,r:client) =
+    get keys(=i,dk_i,sk_i) in
+    get clients(=r,ek_r,vk_r) in
+
+    (* Send First Message *)
+    new dk_e:privkey;
+    let kp_sig = sign(sk_i,(i,vk(sk_i),pk(dk_e))) in
+    let kp = KeyPackage(i,vk(sk_i),pk(dk_e),kp_sig) in
+    event Init(i,r);
+    out (chan(r),kp);
+
+    (* Receive Second Message *)
+    in (chan(i),(=r,Welcome(enc,GroupInfo(ctx,tag,sig))));
+    if verify(vk_r,(ctx,tag),sig) then
+       let ts = pdec(dk_e,enc) in
+       let GroupContext(id,ep,tree_hash,tx_hash,extra) = ctx in
+       if H(Tree(i,pk(dk_e),r)) = tree_hash then
+       let ck = kdf(ts,tree_hash) in
+       if mac(ck,tx_hash) = tag then 
+       event InitDone(i,r,ts);
+
+       let ts_i = kdf(ts,zero) in
+       let ts_r = kdf(ts,one) in
+       
+       (* AKE Done: Move to data transport setting *)
+        ((!in (att,x:bitstring);
+           let ptxt = app_message(i,r,x) in
+           let ctxt = senc(ts_i,ptxt) in
+           event AppSend(i,r,ptxt);
+           out (chan(r),ctxt))
+        |(!in (chan(i),ctxt:bitstring);
+           let ptxt = sdec(ts_r,ctxt) in
+           event AppRecv(i,r,ptxt))).
+
+(* A process for 2MLS Initiators *)
+let responder(r:client) =
+    get keys(=r,dk_r,sk_r) in
+
+    (* Receive First Message *)
+    in (chan(r),KeyPackage(i,vk_i,pk_x,kp_sig));
+    get clients(=i,ek_i,=vk_i) in
+    if verify(vk_i,(i,vk_i,pk_x),kp_sig) then
+
+       (* Send Second Message *)
+       new ts:symkey;
+       let enc = penc(pk_x,ts) in
+       new id:group_id;
+       let tree_hash = H(Tree(i,pk_x,r)) in
+       in (att,(tx_hash:bitstring,extra:bitstring));
+       let ctx = GroupContext(id,0,tree_hash,tx_hash,extra) in
+       let ck = kdf(ts,tree_hash) in
+       let tag = mac(ck,tx_hash) in
+       let gi_sig = sign(sk_r,(ctx,tag)) in
+       let gi = GroupInfo(ctx,tag,gi_sig) in
+       event Respond(r,i,ts);
+       out (chan(i),Welcome(enc,gi));
+
+       let ts_i = kdf(ts,zero) in
+       let ts_r = kdf(ts,one) in
+       
+       (* Confirmation: wait for first application message *)      
+       in (chan(r),ctxt:bitstring);
+       let y = sdec(ts_i,ctxt) in
+       event AppRecv(r,i,y);
+       event RespondDone(r,i,ts);
+
+       (* AKE Done: Move to data transport setting *)
+        ((!in (att,x:bitstring);
+           let ptxt = app_message(r,i,x) in
+           let ctxt = senc(ts_r,ptxt) in
+           event AppSend(r,i,ptxt);
+           out (chan(i),ctxt))
+        |(!in (chan(r),ctxt:bitstring);
+           let ptxt = sdec(ts_i,ctxt) in
+           event AppRecv(r,i,ptxt))).
+    
+
+(* Main Process: any number of clients and members *)
+process
+    !(in (att,p:client); create_client(p))
+  | !(in (att,p:client); compromise_client(p)) 
+  | !(in (att,(i:client,r:client)); initiator(i,r))	
+  | !(in (att,(r:client)); responder(r))	
