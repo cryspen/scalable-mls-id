@@ -100,6 +100,41 @@ free att:channel.
 (* An event triggered when the private keys of a client are compromised *)
 event Compromised(client).
 
+(* Handshake Events *)
+event Init(client,client). 
+event InitDone(client,client,symkey). 
+event Respond(client,client,symkey). 
+event RespondDone(client,client,symkey). 
+
+(* Application Messages and Events *)
+fun app_message(client,client,bitstring):bitstring [private].
+event AppSend(client,client,bitstring).
+event AppRecv(client,client,bitstring).
+
+(* Authentication Queries *)
+query i:client, r:client, ts:symkey, m:bitstring;
+      event(Init(i,r));
+      event(InitDone(i,r,ts));
+      event(Respond(r,i,ts));
+      event(RespondDone(r,i,ts));
+      event(AppSend(i,r,m));
+      event(AppRecv(i,r,m));
+      event(InitDone(i,r,ts)) ==> event(Respond(r,i,ts));
+      event(InitDone(i,r,ts)) ==>
+        (event(Respond(r,i,ts)) || event(Compromised(r)));
+      event(RespondDone(r,i,ts)) ==> event(InitDone(i,r,ts));
+      event(RespondDone(r,i,ts)) ==>
+        (event(InitDone(i,r,ts)) || event(Compromised(i)));
+      event(AppRecv(r,i,m)) ==> event(AppSend(i,r,m));
+      event(AppRecv(r,i,m)) ==>
+        (event(AppSend(i,r,m)) || event(Compromised(i))).
+
+(* Confidentiality Queries *)
+query i:client, r:client, m:bitstring;
+      attacker(app_message(i,r,m));
+      attacker(app_message(i,r,m)) ==> event(Compromised(i));
+      attacker(app_message(i,r,m)) ==> event(Compromised(r)).
+
 (*-----------------------------------*)
 (* Protocol Processes                *)
 (*-----------------------------------*)
@@ -136,40 +171,6 @@ let compromise_client(p:client) =
    R <-> I: senc(s,m')...
 *)
 
-(* Handshake Events *)
-event Init(client,client). 
-event InitDone(client,client,symkey). 
-event Respond(client,client,symkey). 
-event RespondDone(client,client,symkey). 
-
-(* Application Messages *)
-fun app_message(client,client,bitstring):bitstring [private].
-event AppSend(client,client,bitstring).
-event AppRecv(client,client,bitstring).
-
-(* Security Queries *)
-query i:client, r:client, ts:symkey, m:bitstring;
-      event(Init(i,r));
-      event(InitDone(i,r,ts));
-      event(Respond(r,i,ts));
-      event(RespondDone(r,i,ts));
-      event(AppSend(i,r,m));
-      event(AppRecv(i,r,m));
-      event(InitDone(i,r,ts)) ==> event(Respond(r,i,ts));
-      event(InitDone(i,r,ts)) ==>
-        (event(Respond(r,i,ts)) || event(Compromised(r)));
-      event(RespondDone(r,i,ts)) ==> event(InitDone(i,r,ts));
-      event(RespondDone(r,i,ts)) ==>
-        (event(InitDone(i,r,ts)) || event(Compromised(i)));
-      event(AppRecv(r,i,m)) ==> event(AppSend(i,r,m));
-      event(AppRecv(r,i,m)) ==>
-        (event(AppSend(i,r,m)) || event(Compromised(i))).
-
-      
-query i:client, r:client, m:bitstring;
-      attacker(app_message(i,r,m));
-      attacker(app_message(i,r,m)) ==> event(Compromised(i));
-      attacker(app_message(i,r,m)) ==> event(Compromised(r)).
       
 (* A process for 2MLS Initiators *)
 let initiator(i:client,r:client) =
