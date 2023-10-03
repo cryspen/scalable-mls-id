@@ -76,7 +76,7 @@ As such the document is structured as follows
 
 * {{mls-groups-with-passive-clients}} gives an overview of the changes compared
   to {{!RFC9420}} and introduces terminology and concepts used throughout this document.
-* {{expandable-trees}} defines data structures used for passive clients.
+* {{light-mls}} defines data structures used for passive clients.
 * {{active-members}} describes changes to {{!RFC9420}} compliant MLS clients.
 * {{deploying-light-mls}} describes requirements on the delivery service and discusses deployment
   considerations.
@@ -98,6 +98,8 @@ recipient downloads and checks group message.
 Furthermore, the changes only affect the component of MLS that manages,
 synchronizes, and authenticates public group state.
 
+TODO: Do we want to strip welcome messages as well?
+
 # Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
@@ -105,39 +107,39 @@ synchronizes, and authenticates public group state.
 # MLS Groups with Passive Clients
 
 MLS groups with passive clients allow light clients to achieve logarithmic computation
-and communication complexity by using expandable paths and partial commits.
+and communication complexity by not using the MLS tree and partial commits.
 In turn, these clients can only commit after upgrading to full clients
 ({{committing-with-a-passive-client}}).
 
 ## Terminology
 This document introduces the following new concepts
 
-- Expandable Path: An expandable path is a direct path from a leaf node to the root
-  with full nodes along the path, and parent and tree hashes on the co-path.
+- Proof of Membership: A proof of membership for leaf A is a direct path from a
+  leaf node to the root with full nodes along the path, and parent and tree
+  hashes on the co-path.
 - Partial Commit: A partial commit is a commit that the server stripped down to
   hold only the encrypted path secret for the receiver.
-  The framed content signature on partial commits is not valid.
-- Passive client: A passive client is a client that does not know the full MLS
-  tree but only its own expandable path.
+- Passive client: A passive, or light, client is a client that does not know the
+  MLS tree but only its own path.
 - Active client: An active client is conversely a client that is running the full
   MLS protocol from {{!RFC9420}}.
 
 ## Protocol Changes Overview
-MLS groups that support passive clients must use the `passive_clients` extension
+MLS groups that support passive clients must use the `light_clients` extension
 ({{passive-clients-extension}}) in the required capabilities.
-When this extension is present in the group context all messages, except for
+When this extension is present in the group context, all messages, except for
 application messages, MUST use public messages.
 
-The changes are primarily for clients that want to use expandable paths.
+The changes are primarily on light clients.
 
-### Joining a Group with expandable paths
-When joining a group as a client with expandable paths, the client downloads
-only it's own expandable path and the committer's proof of membership.
+### Joining a Group with a light client
+When joining a group as a light client, the client downloads proof of memberships
+for the sender (committer) and the receiver (the light client).
 The sender's proof of membership is discarded after being checked such that only
-the client's direct, expandable path is stored.
+the client's direct path and hashes on the co-path are stored.
 
 ### Processing Proposals
-Proposals are not processed at all.
+Proposals are not processed.
 They are only stored to apply when commits use proposals by reference and to know
 the proposal sender.
 
@@ -148,63 +150,71 @@ When processing a commit, the client retrieves
 - the sender's proof of membership
 - the signed group info
 
-The client MUST NOT check the signature on the framed content, but MUST check
-the sender's proof of membership, the signed group info, and the confirmation tag.
+The client MUST NOT check the signature and membership tag on the framed content,
+but MUST check the sender's proof of membership, the signed group info, and the
+confirmation tag.
 
 ### Changes for committers
 
-In groups with `passive_clients` support, committer MUST send a signed group
+In groups with `light_clients` support, committers MUST send a signed group
 info with every commit.
 
 ### Server Changes
 
-The server must track the public group state together with the signed group info,
-and provide endpoints for clients to retrieve expandable direct paths, the signed
-group info, and partial commits.
+The server MUST track the public group state together with the signed group info,
+and provide endpoints for clients to retrieve light commits and light welcomes.
+Further, it SHOULD provide an API to retrieve proof of memberships for arbitrary
+leaves, and an API to retrieve the full tree.
 
-# Expandable Trees
-An expandable tree is a modified ratchet tree as described in {{!RFC9420}}.
-An expandable tree stores only the direct path from the member to the root plus
-additional information about the co-path.
+# Light MLS
 
-In particular, a list of `Hashes` are stored for the member's co-path, containing
-the node's index, it's tree hash as computed on the full tree, and the original
-tree hash as computed on the full tree (recall that the original tree hash is the
-node's tree hash excluding any unmerged leaves).
+## New MLSMessage Types
+This draft defines two new `MLSMessage` types with `wire_format = 0x0006` and
+`wire_format = 0x0007`.
+
+Light welcomes, `wire_format = 0x0006`, are defined as follows.
+In particular, the `Welcome` message is extended with the `TreeSlice`.
 
 ~~~tls
 struct {
-  uint32 index;
-  opaque tree_hash<V>;
-  opaque original_tree_hash<V>;
-} Hashes;
+    ProtocolVersion version = mls10;
+    WireFormat wire_format;
+    select (MLSMessage.wire_format) {
+        ...
+        case mls_light_welcome:
+            Welcome welcome;
+            TreeSlice tree_info;
+    };
+} MLSMessage;
 ~~~
 
-TODO: Add tree pictures examples for explanation
+Similarly, light commits, `wire_format = 0x0007`, are defined as follow.
+The commit message is extended with the `TreeSlice`, a `GroupInfo`, and
+the `decryption_node_index` for the decryption key of the path secret.
 
-~~~ ascii-art
-          R
-         /
-        P
-      __|__
-     /     \
-    D       S
-   / \     / \
- ... ... ... ...
- /
-L
+~~~tls
+struct {
+    ProtocolVersion version = mls10;
+    WireFormat wire_format;
+    select (MLSMessage.wire_format) {
+        ...
+        case mls_light_commit:
+            PublicMessage commit;
+            TreeSlice tree_info;
+            GroupInfo group_info;
+            uint32 decryption_node_index;
+    };
+} MLSMessage;
 ~~~
-{: #expandable-tree-figure title="Expandable tree" }
 
 ## Verifying Tree Validity
-A client that has an expandable tree can not do all the checks that a client with
-the full tree can do.
+A light client can not do all the checks that a client with the full tree can do.
 We therefore update the checks performed on tree modifications.
 In particular the validation of commits and welcome packages are modified compared
 to {{!RFC9420}}.
 
 ### Joining a Group via Welcome Message
-When a new member joins the group with a `Welcome` message
+When a new member joins the group with a Light Welcome message
 (Section 12.4.3.1. {{!RFC9420}}) without the ratchet tree extension the checks
 are updated as follows.
 
@@ -213,24 +223,52 @@ are updated as follows.
     2. confirmation tag
     3. tree hash
 2. Verify the sender's membership (see {{proof-of-membership}}).
-3. Check the own direct path to the root (see {{verifying-expandable-paths}}).
+3. Check the own direct path to the root (see {{proof-of-membership}}).
 4. Do *not* verify leaves in the tree.
 
 ### Commit
-When a member receives a `Commit` message (Section 12.4.2. {{!RFC9420}})
+
+To reduce the size of `Commit` messages, especially in large, sparse trees, the
+delivery service strips unnecessary parts of member Commits.
+See {{deploying-light-mls}} for details on the requirements on the delivery service.
+
+The structure of the message stays the same but the server removes all `HPKECiphertext`
+from the `encrypted_path_secret` in the commit's `UpdatePath` that is relevant
+for the receiver.
+
+This breaks the signature and membership tag on the `FramedContent` such that
+these MUST NOT be checked by the receiver of a Light Commit.
+
+Instead, the proof of membership is verified for the sender and the receiver.
+Similar to checking proof of memberships ({{proof-of-membership}}) the receiver
+of a Light Commit MUST verify the parent hash of the tree by using
+`original_tree_hash` of the co-path nodes, and the tree hash of the new tree.
+Note that a light client can not verify all points from {{!RFC9420}}.
+In particular, the check that "D is in the resolution of C, and the intersection of P's
+`unmerged_leaves`` with the subtree under C is equal to the resolution of C with D removed."
+can not be performed because the light client can not compute the resolution.
+But this property always holds on correctly generated tree, which the light client
+has to trust, not knowing the tree.
+
+Taking the confirmed transcript hash from the GroupInfo, a light client can still
+check the confirmation tag.
+Otherwise, a Light Commit is applied like a regular commit.
+
+When a member receives a Light Commit message (Section 12.4.2. {{!RFC9420}})
 the checks are updated as follows.
 
 1. Verify the sender's membership (see {{proof-of-membership}}).
-2. If the own path changed, check it.
+2. Verify the own path (proof of membership).
+3. Verify the GroupInfo signature
+4. Check the tree hash in the GroupInfo against our own tree
 
 ## Proof of Membership
-To verify the group membership of the sender of a commit, the receiver with an
-expandable tree checks the sender's leaf (see Section 7.3 {{!RFC9420}}), as
-well as the correctness of the tree as described in {{verifying-expandable-paths}}.
+To verify the group membership of the sender of a commit, the light receiver
+checks the sender's leaf (see Section 7.3 {{!RFC9420}}), as well as the
+correctness of the tree.
 
-## Verifying Expandable Paths
-To verify the correctness of an expandable tree the client checks its tree hash
-and parent hashes.
+To verify the correctness of the tree on a light client, the client checks its
+tree hash and parent hashes.
 For each direct path from a leaf to the root that the client has, it checks the
 parent hash value on each node by using `original_tree_hash` of the co-path nodes.
 The tree hash on the root node is computed similarly, using the `tree_hash` values
@@ -238,31 +276,18 @@ for all nodes where the client does not have the full nodes.
 
 Check that the encryption keys of all received nodes are unique.
 
-## Retrieving Expandable Tree Information
-The `ExpandableTree` is provided by the delivery service to the client on request.
-Alternatively, a client can send the `ExpandableTree` as extension in `Welcome`
-messages.
-See {{expandable-trees}} for details on the expandable tree extension.
-
-### Expandable Tree from the Deliver Service
-
-In particular, when joining a group, after receiving a `Welcome` message, the
-client queries the delivery service for the expandable tree.
-The delivery service must keep track of the group's state (tree) and assemble the
-`ExpandableTree` when requested for a given sender and receiver.
-
-When receiving a `Commit` message, the client queries the delivery service for
-the sender's direct path to check its membership.
-
-### Expandable Tree from the Sender
-
-When the delivery service does not provide the necessary endpoints to query the
-expandable paths, the sender can include it into the `GroupInfo` extensions in
-the `Welcome` message.
-
-## Expandable Tree
+The `TreeSlice` for proof of memberships is provided by the delivery service to
+the light client on request.
+Further, a client is sent the `TreeSlice` as part of the `LightWelcome`
+and `LightCommit` messages.
 
 ~~~tls
+struct {
+  uint32 index;
+  opaque tree_hash<V>;
+  opaque original_tree_hash<V>;
+} Hashes;
+
 enum {
   reserved(0),
   xnode(1),
@@ -271,8 +296,8 @@ enum {
 } XNodeType;
 
 struct {
-  uint32: index;
   optional<Node> node;
+  uint32: index;
 } XNode;
 
 struct {
@@ -285,8 +310,9 @@ struct {
 
 struct {
   ExpandableNode nodes<V>;
+  uint32 own_node;
   uint32 num_nodes;
-} ExpandableTree;
+} TreeSlice;
 ~~~
 
 ## Committing with a Passive Client
@@ -303,19 +329,19 @@ However, since each client in {{!RFC9420}} must check the proposals, a misbehavi
 client that upgraded can only successfully commit bogus
 proposals when all other clients and the delivery service agree.
 
-The expandable paths extension ({{passive-clients-extension}}) defines the possible
-upgrade paths for passive clients.
+The passive clients extension ({{passive-clients-extension}}) defines the possible
+upgrade paths for light clients.
 
-In order to ensure that the tree retrieved from the server contains the expandable
-path known to the client, the upgrading client MUST perform the following checks:
+In order to ensure that the tree retrieved from the server contains the tree
+slice known to the client, the upgrading client MUST perform the following checks:
 
-* Verify that the tree hash of the expandable path and the full tree are equivalent.
+* Verify that the tree hash of the tree slice and the full tree are equivalent.
 * Verify that all full nodes (`XNode`) in the client's state are equivalent to
   the corresponding nodes in the full tree.
 * Perform all checks on the tree as if joining the group with a `Welcome` message
 (see Section 12.4.3.1. in {{!RFC9420}}).
 
-Note that the client already checked the signed
+Note that the client already checked the signed group info.
 
 To retrieve the full tree, the delivery service must provide an end point,
 equivalent to the one used to retrieve the full tree for a new member that wants
@@ -329,92 +355,85 @@ This will cause the client's performance to regress to the performance of regula
 MLS, but allows it to commit again without the necessity to download the full
 tree again.
 
-If the client does not expect to commit regularly, only the expandable tree should
+If the client does not expect to commit regularly, only the own path should
 be kept after a commit.
 
 ## Passive Clients Extension
-The `passive_clients` group context extension is used to signal that the group
-supports clients with expandable paths.
+The `light_clients` group context extension is used to signal that the group
+supports Light MLS clients.
 
 ~~~tls
-enum ExpandableClientType {
+enum LightClientType {
   reserved(0),
   no_upgrade(1),
   resync_upgrade(2),
   self_upgrade(3),
   any_upgrade(4),
+  (255)
 }
 
 struct {
-  ExpandableClientType expandable;
-} ExpandablePathsExtension;
+  LightClientType upgrade_policy;
+} LightMlsExtension;
 ~~~
 
 The extension must be present and set in the required capabilities of a group
-when supporting clients with expandable paths.
+when supporting light clients.
 It further defines ways passive clients may upgrade to a full client.
 
-- `no_upgrade` does not allow expandable clients to update to full MLS.
-- `resync_upgrade` allows clients to upgrade to full MLS by using an external commit.
+- `no_upgrade` does not allow light clients to upgrade to full MLS.
+- `resync_upgrade` allows light clients to upgrade to full MLS by using an external commit.
   The resync removes the old client from the group and adds a new client with full MLS.
-- `self_upgrade` allows clients to upgrade to full MLS by retrieving the full tree
+- `self_upgrade` allows light clients to upgrade to full MLS by retrieving the full tree
   from the server. Together with the signed group info of the current epoch the
   client "silently" upgrades to full MLS with security equivalent to joining a new
   group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
-- `any_upgrade` allows clients to use either of the two upgrade mechanisms.
+- `any_upgrade` allows light clients to use either of the two upgrade mechanisms.
 
 TODO: Add IANA number for the extension.
 
-# Receiver specific Commits
-
-To reduce the size of `Commit` messages, especially in large, sparse trees, the
-delivery service can strip unnecessary parts of the `Commit` when using the public
-message type for `MLSMessage` and the sender type is `member`.
-
-The structure of the message stays the same but the server removes all `HPKECiphertext`
-from the `encrypted_path_secret` in the commit's `UpdatePath`, if present, where
-the `encryption_key` does not match the receiver's encryption key.
-
-This breaks the signature on the `FramedContent` such that this MUST NOT be checked
-by the receiver of such a commit.
-
-The delivery service sends an expandable commit `XCommit` message that is defined
-as follows.
-
-A new content type `xcommit(4)` is defined for `FramedContent`.
-
-~~~tls
-struct {
-  ExpandableNode nodes<V>;
-} XPath;
-
-struct {
-  ProposalOrRef proposal<V>;
-  optional<UpdatePath> path;
-  optional<XPath> sender_path;
-} XCommit;
-~~~
-
-Similar to checking expandable paths ({{verifying-expandable-paths}}) the receiver
-of an `XCommit` MUST verify the parent hash value on each node by using
-`original_tree_hash` of the co-path nodes, and the tree hash of the new tree.
-
-## Applying receiver specific commits
-
-When receiving an `XCommit`, the client applies it like a regular commit.
-
-Additionally, the client checks the membership of the committer as described in
-{{proof-of-membership}} using the `sender_path`.
-
 # Active Members
 
-TODO: changes for active members - send group info message
+Full RFC members in groups with light clients don't need significant changes, which
+can always be built on top of regular MLS clients.
+In particular are active MLS clients required to send a `GroupInfo` alongside
+every commit message to the delivery service.
+Depending on the deployment, the delivery service might also ask the client to
+send a ratchet tree for each commit.
+But the delivery service can track the tree based on commit messages such that
+sending ratchet trees with commits is not recommended.
 
 # Deploying Light MLS
 
 TODO:
 - describe server changes
 - deployment considerations
+
+## Commit Processing
+
+The delivery service processes Commits for light clients and produces `LightCommit`
+messages for them.
+To do this, the server creates the sender and receiver proof of memberships (`tree_info`),
+adds the `group_info` of the current epoch, and removes all information from the
+`Commit` struct that is not needed by the receiver.
+In particular, only the required `UpdatePathNode` is kept from the `nodes` vector,
+and only the `HPKECiphertext` the receiver can process is kept from the `encrypted_path_secret`
+vector.
+For the receiver to identify the decryption key for the ciphertext, the server
+adds the `decryption_node_index` to the `LightCommit`.
+
+## Tree slices from the Sender
+
+When the delivery service does not provide the necessary endpoints to query the
+expandable paths, the sender can include it into the `GroupInfo` extensions in
+the `Welcome` message.
+
+### Maintaining state on Light Clients
+
+Light clients can decide to store the tree slices and build up a tree over time
+when other members commit.
+But client may decide to delete the sender paths it gets after verifying it's
+correctness.
 
 # Passive Clients
 
