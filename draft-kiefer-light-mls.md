@@ -19,7 +19,7 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "Light Clients for Messaging Layer Security"
+title: "Light MLS"
 abbrev: "lmls"
 category: info
 
@@ -64,10 +64,10 @@ group, and consequently, all members must download, validate, and maintain
 the full group state which can incur a significant communication and
 computational cost, especially when joining a group.
 
-This document describes an extension to MLS that introduces light clients
+This document describes an extension to MLS, light MLS, that introduces light clients
 that can efficiently join groups, process group changes, send and receive
 application messages, but cannot commit changes to the group. The
-reduced complexity results in lower cost and smaller implementation
+reduced complexity results in lower cost and a smaller implementation
 for light clients, making them attractive in many scenarios.
 
 --- middle
@@ -79,8 +79,7 @@ The design of MLS in {{!RFC9420}} implicitly requires all members to download
 and maintain the full MLS tree, validate the credentials and signatures of
 all members, and process full commit messages. The size of the MLS tree
 is linear in the size of the group, and each commit message can also grow
-to be linear in the group size. Consequently, the MLS design results in a high
-latency and performance bottlenecks at new members seeking to join a large group.
+to be linear in the group size. Consequently, the MLS design results in high latency and performance bottlenecks at new members seeking to join a large group, or processing commits in large groups.
 
 This document defines a modified MLS client for the protocol from
 {{!RFC9420}} that has significantly lower communication and
@@ -92,12 +91,14 @@ a tree-slice: the part of tree that it needs to process commits.
 We note that this document does not change the structure of the MLS
 tree, or the contents of messages sent in the course of an MLS
 session.  It only modifies the local state stored at light clients,
-and changes how each light client downloads and checks group message.
+and changes how each light client downloads and checks group messages.
 The only modifications required for standard clients are related to
-the negotation of an MLS extension, and additional data they need to
-send with each commit. Furthermore, we note that the changes in this
-documnt only affect the component of MLS that manages, synchronizes,
-and authenticates public group state. It does not affect the TreeKEM
+the negotiation of an MLS extension, and additional data they need to
+send with each commit.
+Furthermore, we note that the changes in this
+document only affects the component of MLS that manages, synchronizes,
+and authenticates the public group state.
+It does not affect the TreeKEM
 key establishment or the application message sub-protocols.
 
 The rest of the documemt defines the
@@ -109,11 +110,10 @@ As such the document is structured as follows
 * {{mls-groups-with-light-clients}} gives an overview of the changes compared
   to {{!RFC9420}} and introduces terminology and concepts used throughout this document.
 * {{light-mls}} defines data structures used for light clients.
-* {{active-members}} describes changes to {{!RFC9420}} compliant MLS clients.
+* {{full-members}} describes changes to {{!RFC9420}} compliant MLS clients.
 * {{deploying-light-mls}} describes requirements on the delivery service and discusses deployment
   considerations.
-<!-- * {{light-clients}} details the operation of light clients -->
-* {{security-considerations}} discuss security implications for light clients
+* {{security-considerations}} discusses security implications for light clients
   and deployments that involve light clients.
 
 # Conventions and Definitions
@@ -127,19 +127,18 @@ full clients that can send and receive all MLS messages, and light
 clients that cannot send commits but can otherwise participate in
 the group normally. If a light client wishes to send a commit,
 it can upgrade itself to a full client
-({{committing-with-a-light-client}}). 
+({{committing-with-a-light-client}}).
 
 ## Terminology
 This document introduces the following new concepts
 
-- Proof of Membership: A proof of membership for leaf A is a direct path, or tree
-  slice from a leaf node to the root with full nodes along the path, and parent
-  and tree hashes on the co-path.
+- Tree Slice: A tree slice is the direct path from a leaf node to the root, together with the tree hashes on the co-path.
+- Proof of Membership: A proof of membership for leaf A is a tree slice that proves that leaf A is in the tree with the tree hash in the root of the tree slice.
 - Partial Commit: A partial commit is a commit that the server stripped down to
   hold only the encrypted path secret for the receiver.
-- Light client: A light, or light, client is a client that does not know the
-  MLS tree but only its own path.
-- Full client: An active client is conversely a client that is running the full
+- Light client: A light client is a client that does not know the
+  MLS tree but only its own tree slice.
+- Full client: A full client is conversely a client that is running the full
   MLS protocol from {{!RFC9420}}.
 
 ## Protocol Changes Overview
@@ -150,9 +149,9 @@ application messages, MUST use public messages.
 
 The changes are primarily on light clients.
 
-When joining a group as a light client, the client downloads proof of memberships
+When joining a group as a light client, the client downloads the proof of memberships
 for the sender (committer) and the receiver (the light client).
-The sender's proof of membership is discarded after being checked such that only
+The sender's proof of membership can be discarded after being checked such that only
 the client's direct path and hashes on the co-path are stored.
 
 Proposals are not processed.
@@ -231,7 +230,7 @@ struct {
 Full MLS clients do not need to implement these types.
 The delivery service builds these messages instead.
 
-While the `Commit` structure stays as defined in Sec. 12.4 {{!RFC9420}}, the
+While the `Commit` structure stays as defined in Section 12.4 {{!RFC9420}}, the
 content is changed.
 To reduce the size of `Commit` messages, especially in large, sparse trees, the
 delivery service strips unnecessary parts of member Commits.
@@ -245,7 +244,7 @@ for the receiver, is kept.
 A light client can not do all the checks that a client with the MLS tree can do.
 We therefore update the checks performed on tree modifications.
 Instead of verifying the MLS tree, light clients verify that they are in a group
-with a certain hash value.
+with a certain tree hash value.
 In particular the validation of commits and welcome packages are modified compared
 to {{!RFC9420}}.
 
@@ -266,8 +265,7 @@ are updated as follows.
 Because the the signature and membership tag on the `FramedContent` in Light Commit
 messages is broken, these MUST NOT be checked by the receiver.
 
-Instead, the proof of membership in the `tree_info` is verified for the sender
-and the receiver.
+Instead, the proof of membership in the `tree_info` is verified for the sender.
 
 Note that while a light client can check the parent hashes when verifying the new
 group state, it can not verify all points from Sec. 7.9.2 in {{!RFC9420}}.
@@ -281,8 +279,7 @@ Taking the confirmed transcript hash from the GroupInfo, a light client checks
 the confirmation tag.
 Otherwise, a Light Commit is applied like a regular commit.
 
-When a member receives a Light Commit message (Section 12.4.2. {{!RFC9420}})
-the checks are updated as follows.
+In summary, when a member receives a Light Commit message the checks are updated as follows.
 
 1. Verify the sender's membership (see {{proof-of-membership}}) and leaf node (see Section 7.3 {{!RFC9420}}).
 2. Verify the own path (see {{proof-of-membership}}).
@@ -290,8 +287,8 @@ the checks are updated as follows.
 4. Check the tree hash in the GroupInfo matches the clients own tree hash.
 
 ## Proof of Membership
-Tree slices are used to proof group membership of leaves.
-The `tree_info` in light MLS messages always contains the sender's and the receiver's
+Tree slices are used to prove group membership of leaves.
+The `tree_info` in light MLS messages always contains the sender's and may contain the receiver's
 tree slices to allow the receiver to check the proof of membership.
 
 To verify the correctness of the group on a light client, the client checks its
@@ -302,8 +299,7 @@ the co-path nodes.
 The tree hash on the root node is computed similarly, using the `tree_hash` values
 for all nodes where the client does not have the full nodes.
 
-The `TreeSlice` for proof of memberships can be queried from the delivery service
-at any point for any member in the tree.
+The delivery service should allow to query `TreeSlice` for proof of memberships at any point for any member in the tree.
 
 ~~~tls
 struct {
@@ -411,14 +407,14 @@ This will cause the client's performance to degrade to the performance of regula
 MLS, but allows it to commit again without the necessity to download the full
 tree again.
 
-If the client does not expect to commit regularly, only the own path should
+If the client does not expect to commit regularly, only the own tree slice should
 be kept after a commit.
 
-# Active Members
+# Full Members
 
-Full RFC members in groups with light clients don't need significant changes.
+Full MLS members in groups with light clients don't need significant changes.
 Any changes can always be built on top of regular MLS clients.
-In particular, active MLS clients are required to send a `GroupInfo` alongside
+In particular, full MLS clients are required to send a `GroupInfo` alongside
 every commit message to the delivery service.
 Depending on the deployment, the delivery service might also ask the client to
 send a ratchet tree for each commit.
@@ -451,7 +447,7 @@ Light MLS can be used to bootstrap large groups before lazily upgrading light
 clients to MLS.
 This distributes the load on the server and clients.
 
-Light MLS may also be used to on low powered devices that only occasionally upgrade
+Light MLS may also be used on low powered devices that only occasionally upgrade
 to full MLS clients to commit to the group, for example when charging.
 
 Light clients can decide to store the tree slices and build up a tree over time
@@ -459,18 +455,16 @@ when other members commit.
 But client may decide to delete the sender paths it gets after verifying it's
 correctness.
 
-## Tree slices from the Sender
+## Light Messages from the Sender
 
-When the delivery service does not provide the necessary endpoints to query the
-expandable paths, the sender can include it into the `GroupInfo` extensions in
-the `Welcome` message.
+When the delivery service does not provide the necessary endpoints for light messages, the committer can build and end the light commit and welcome messages directly.
 
 # Security Considerations
 
 The MLS protocol in {{!RFC9420}} has a number of security analyses attached.
-Yet, the exact security of the protocol is fully understood yet.
+Yet, the exact security of the protocol is not fully understood yet.
 To describe the security of light MLS and how it relates to the security of full
-MLS we therefore define the following main high-level guarantees of MLS are as follows:
+MLS we therefore define the following main high-level guarantees of MLS as follows:
 
 - **Membership Agreement**: If a client B has a local group state for group G in
   epoch N, and it receives (and accepts) an application message from a sender A
@@ -495,14 +489,13 @@ MLS we therefore define the following main high-level guarantees of MLS are as f
 As a corollary of Group Key Secrecy, we also obtain authentication and
 confidentiality guarantees for application messages sent and received within a group.
 
-To verify the security guarantees provided by light members, a new security analysis is needed. We have analyzed the security of the protocol using two verification tools ProVerif and F*. In the following, we will describe our model and results.
+To verify the security guarantees provided by light members, a new security analysis is needed. We have analyzed the security of the protocol using two verification tools ProVerif and F*.
 
-Light MLS preserves these invariants and thereby all the security goals of MLS
-continue to hold at active members.
+Light MLS preserves the invariants above and thereby all the security goals of MLS
+continue to hold at full members.
 However, a light member may not know the identities of all other members in the
 group, and it may only discover these identities on-demand.
-Consequently, the Member Identity Authentication guarantee is weaker than in RFC MLS,
-where all member identities are constantly verified by every member of the group.
+Consequently, the Member Identity Authentication guarantee is weaker on light clients.
 Furthermore, since light members do not store the MLS tree, membership agreement
 only holds for the hash of the MLS tree:
 
