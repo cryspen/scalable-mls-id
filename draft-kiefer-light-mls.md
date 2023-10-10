@@ -19,7 +19,7 @@
 # Change the file extension to match the format (.xml for XML, etc...)
 #
 ###
-title: "MLS with Lightweight Clients"
+title: "Light Clients for Messaging Layer Security"
 abbrev: "lmls"
 category: info
 
@@ -57,57 +57,77 @@ informative:
 
 --- abstract
 
-This document describes a variant of the MLS protocol with lightweight clients
-that are passive in the protocol and only send application messages and proposals.
+The Messaging Layer Security (MLS) protocol provides efficient
+asynchronous group key establishment for large groups with up to
+thousands of clients.  In MLS, any member can commit a change to the
+group, and consequently, all members must download, validate, and maintain
+the full group state which can incur a significant communication and
+computational cost, especially when joining a group.
 
-Passive clients are advantageous on resource constrained devices or can be used
-to bootstrap clients lazily.
-The reduced complexity, which also results in a smaller implementation, makes
-light clients attractive for many scenarios.
+This document describes an extension to MLS that introduces light clients
+that can efficiently join groups, process group changes, send and receive
+application messages, but cannot commit changes to the group. The
+reduced complexity results in lower cost and smaller implementation
+for light clients, making them attractive in many scenarios.
 
 --- middle
 
 # Introduction
 
-This draft defines passive clients for MLS and required modifications on the
-infrastructure and full MLS clients.
+
+The design of MLS in {{!RFC9420}} implicitly requires all members to download
+and maintain the full MLS tree, validate the credentials and signatures of
+all members, and process full commit messages. The size of the MLS tree
+is linear in the size of the group, and each commit message can also grow
+to be linear in the group size. Consequently, the MLS design results in a high
+latency and performance bottlenecks at new members seeking to join a large group.
+
+This document defines a modified MLS client for the protocol from
+{{!RFC9420}} that has significantly lower communication and
+computation complexity, logarithmic in the group size. The key idea
+behind this optimization is that a light client does not download,
+validate, or maintain the full tree. Instead, it only maintains
+a tree-slice: the part of tree that it needs to process commits.
+
+We note that this document does not change the structure of the MLS
+tree, or the contents of messages sent in the course of an MLS
+session.  It only modifies the local state stored at light clients,
+and changes how each light client downloads and checks group message.
+The only modifications required for standard clients are related to
+the negotation of an MLS extension, and additional data they need to
+send with each commit. Furthermore, we note that the changes in this
+documnt only affect the component of MLS that manages, synchronizes,
+and authenticates public group state. It does not affect the TreeKEM
+key establishment or the application message sub-protocols.
+
+The rest of the documemt defines the
+behavior of light clients, and all required modifications to standard
+MLS clients and the MLS infrastructure.
 
 As such the document is structured as follows
 
-* {{mls-groups-with-passive-clients}} gives an overview of the changes compared
+* {{mls-groups-with-light-clients}} gives an overview of the changes compared
   to {{!RFC9420}} and introduces terminology and concepts used throughout this document.
-* {{light-mls}} defines data structures used for passive clients.
+* {{light-mls}} defines data structures used for light clients.
 * {{active-members}} describes changes to {{!RFC9420}} compliant MLS clients.
 * {{deploying-light-mls}} describes requirements on the delivery service and discusses deployment
   considerations.
-<!-- * {{passive-clients}} details the operation of passive clients -->
-* {{security-considerations}} discuss security implications for passive clients
-  and deployments that involve passive clients.
-
-The design of MLS in {{!RFC9420}} implicitly requires all members to download
-and check a significant amount of cryptographic information, resulting in high
-latency and performance bottlenecks at new members seeking to join a large group.
-
-This document defines a modified MLS client for the protocol from {{!RFC9420}}
-that has logarithmic communication and computation complexity.
-
-This document does not change the structure of the MLS tree, or the contents of
-messages sent in the course of an MLS session.
-It only specifies the local state stored at light clients, and changes how each
-recipient downloads and checks group message.
-Furthermore, the changes only affect the component of MLS that manages,
-synchronizes, and authenticates public group state.
+<!-- * {{light-clients}} details the operation of light clients -->
+* {{security-considerations}} discuss security implications for light clients
+  and deployments that involve light clients.
 
 # Conventions and Definitions
 
 {::boilerplate bcp14-tagged}
 
-# MLS Groups with Passive Clients
+# MLS Groups with Light Clients
 
-MLS groups with passive clients allow light clients to achieve logarithmic computation
-and communication complexity by not using the MLS tree.
-In turn, these clients can only commit after upgrading to full clients
-({{committing-with-a-passive-client}}).
+An MLS group that supports light clients has two kinds of members:
+full clients that can send and receive all MLS messages, and light
+clients that cannot send commits but can otherwise participate in
+the group normally. If a light client wishes to send a commit,
+it can upgrade itself to a full client
+({{committing-with-a-light-client}}). 
 
 ## Terminology
 This document introduces the following new concepts
@@ -117,13 +137,13 @@ This document introduces the following new concepts
   and tree hashes on the co-path.
 - Partial Commit: A partial commit is a commit that the server stripped down to
   hold only the encrypted path secret for the receiver.
-- Passive client: A passive, or light, client is a client that does not know the
+- Light client: A light, or light, client is a client that does not know the
   MLS tree but only its own path.
-- Active client: An active client is conversely a client that is running the full
+- Full client: An active client is conversely a client that is running the full
   MLS protocol from {{!RFC9420}}.
 
 ## Protocol Changes Overview
-MLS groups that support passive clients must use the `light_clients` extension
+MLS groups that support light clients must use the `light_clients` extension
 ({{light-mls-extension}}) in the required capabilities.
 When this extension is present in the group context, all messages, except for
 application messages, MUST use public messages.
@@ -340,7 +360,7 @@ struct {
 
 The extension must be present and set in the required capabilities of a group
 when supporting light clients.
-It further defines ways passive clients may upgrade to a full client.
+It further defines ways light clients may upgrade to a full client.
 
 - `no_upgrade` does not allow light clients to upgrade to full MLS.
 - `resync_upgrade` allows light clients to upgrade to full MLS by using an external commit.
@@ -351,12 +371,12 @@ It further defines ways passive clients may upgrade to a full client.
   group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
 - `any_upgrade` allows light clients to use either of the two upgrade mechanisms.
 
-## Committing with a Passive Client
+## Committing with a Light Client
 
-A passive client *can not commit* because it doesn't know the necessary
+A light client *can not commit* because it doesn't know the necessary
 public keys in the tree to encrypt to.
-Therefore, if a passive client wants to commit, it first has to upgrade to full MLS.
-Because a passive client is not able to fully verify incoming
+Therefore, if a light client wants to commit, it first has to upgrade to full MLS.
+Because a light client is not able to fully verify incoming
 proposals, it MUST NOT commit to proposals it received while not holding a full tree.
 A client that is upgrading to a full MLS tree is therefore
 considered to be a new client that has no knowledge of proposals before it joined.
@@ -365,7 +385,7 @@ However, since each client in {{!RFC9420}} must check the proposals, a misbehavi
 client that upgraded can only successfully commit bogus
 proposals when all other clients and the delivery service agree.
 
-The passive clients extension ({{light-mls-extension}}) defines the possible
+The light clients extension ({{light-mls-extension}}) defines the possible
 upgrade paths for light clients.
 
 In order to ensure that the tree retrieved from the server contains the tree
@@ -475,32 +495,32 @@ MLS we therefore define the following main high-level guarantees of MLS are as f
 As a corollary of Group Key Secrecy, we also obtain authentication and
 confidentiality guarantees for application messages sent and received within a group.
 
-To verify the security guarantees provided by passive members, a new security analysis is needed. We have analyzed the security of the protocol using two verification tools ProVerif and F*. In the following, we will describe our model and results.
+To verify the security guarantees provided by light members, a new security analysis is needed. We have analyzed the security of the protocol using two verification tools ProVerif and F*. In the following, we will describe our model and results.
 
 Light MLS preserves these invariants and thereby all the security goals of MLS
 continue to hold at active members.
-However, a passive member may not know the identities of all other members in the
+However, a light member may not know the identities of all other members in the
 group, and it may only discover these identities on-demand.
 Consequently, the Member Identity Authentication guarantee is weaker than in RFC MLS,
 where all member identities are constantly verified by every member of the group.
-Furthermore, since passive members do not store the MLS tree, membership agreement
+Furthermore, since light members do not store the MLS tree, membership agreement
 only holds for the hash of the MLS tree:
 
-- **Passive Membership Agreement**: If a passive client B has a local group state
+- **Light Membership Agreement**: If a light client B has a local group state
   for group G in epoch N, and it receives (and accepts) an application message
   from a sender A for group G in epoch N, then A must be a member of G in epoch N
   at B, and if A is honest, then A and B agree on the GroupContext of the group G in epoch N.
-- **Passive Member Identity Authentication**: If a passive client B has a local
+- **Light Member Identity Authentication**: If a light client B has a local
   group state for group G in epoch N, and B has verified A’s membership proof in G,
   and A is linked to a user identity U, then either the signature key of U’s
   credential is compromised, or A belongs to U.
-- **Passive Group Key Secrecy**: If a passive client B has a local group state
+- **Light Group Key Secrecy**: If a light client B has a local group state
   for group G in epoch N with group key K (init secret), and if the tree hash at B
   corresponds to a full tree, then K can only be known to members at the leaves
   of this tree. That is, if the attacker knows K, then the signature or decryption
   keys at one of the leaves must have been compromised.
 
-Another technical caveat is that since passive members do not have the full tree,
+Another technical caveat is that since light members do not have the full tree,
 they cannot validate the uniqueness of all HPKE and signature keys in the tree,
 as required by RFC MLS.
 The exact security implications of removing this uniqueness check is not clear
