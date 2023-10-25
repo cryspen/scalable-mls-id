@@ -1,24 +1,4 @@
 ---
-###
-# Internet-Draft Markdown Template
-#
-# Rename this file from draft-todo-yourname-protocol.md to get started.
-# Draft name format is "draft-<yourname>-<workgroup>-<name>.md".
-#
-# For initial setup, you only need to edit the first block of fields.
-# Only "title" needs to be changed; delete "abbrev" if your title is short.
-# Any other content can be edited, but be careful not to introduce errors.
-# Some fields will be set automatically during setup if they are unchanged.
-#
-# Don't include "-00" or "-latest" in the filename.
-# Labels in the form draft-<yourname>-<workgroup>-<name>-latest are used by
-# the tools to refer to the current version; see "docname" for example.
-#
-# This template uses kramdown-rfc: https://github.com/cabo/kramdown-rfc
-# You can replace the entire file if you prefer a different format.
-# Change the file extension to match the format (.xml for XML, etc...)
-#
-###
 title: "Light MLS"
 abbrev: "lmls"
 category: info
@@ -74,12 +54,13 @@ for light clients, making them attractive in many scenarios.
 
 # Introduction
 
-
 The design of MLS in {{!RFC9420}} implicitly requires all members to download
 and maintain the full MLS tree, validate the credentials and signatures of
 all members, and process full commit messages. The size of the MLS tree
 is linear in the size of the group, and each commit message can also grow
-to be linear in the group size. Consequently, the MLS design results in high latency and performance bottlenecks at new members seeking to join a large group, or processing commits in large groups.
+to be linear in the group size. Consequently, the MLS design results in high
+latency and performance bottlenecks at new members seeking to join a large
+group, or processing commits in large groups.
 
 This document defines a modified MLS client for the protocol from
 {{!RFC9420}} that has significantly lower communication and
@@ -147,6 +128,22 @@ MLS groups that support light clients must use the `light_clients` extension
 When this extension is present in the group context, all messages, except for
 application messages, MUST use public messages.
 
+XXX(RLB): I don't love this restriction to public messages, and I don't think
+it's necessary.  Clearly it is necessary if the DS is doing the fanout.  But it
+seems like you could also envision a scenario where the committer knows which
+clients are light (maybe via a LeafNode extension), and generates a light Commit
+for each light client.  It puts more burden on the committer, but a group using
+PrivateMessage is generally more taxing for committers anyway.  Some technical
+details on how to do this below.
+
+XXX(RLB): It might be worth defining a LeafNode extension here to signal that a
+client is operating in light mode.  (Note that a client can operate in light
+mode even if it gets a full Welcome, but cannot process a full Commit.)
+
+XXX(RLB): It would be worth fleshing out a use case here, since there are some
+assumptions on what the committer sends and what the DS does.  Even in the
+DS-assisted case, the committer needs to send a fresh GroupInfo.
+
 The changes are primarily on light clients.
 
 When joining a group as a light client, the client downloads the proof of memberships
@@ -157,6 +154,15 @@ the client's direct path and hashes on the co-path are stored.
 Proposals are not processed.
 They are only stored to apply when commits use proposals by reference and to know
 the proposal sender.
+
+XXX(RLB): Do light clients even need to see proposals?  For anything related to
+the tree, they don't care.  They never see the proposal list in the Commit.  The
+only possible things are PSK, ReInit, and GroupContextExtensions proposals,
+which I'm not sure we handle properly anyway.  We should probably do an audit of
+proposals to make sure that a light client gets enough information to react
+appropriately to a commit that covers them (maybe throw them into some extension
+alongside the tree slice), and also insert some words about future proposal
+types.
 
 When processing a commit, the client retrieves
 
@@ -187,6 +193,11 @@ This draft defines two new `MLSMessage` types with `wire_format = 0x0006` and
 Light welcomes, `wire_format = 0x0006`, are defined as follows.
 In particular, the `Welcome` message is extended with the `TreeSlice`.
 
+XXX(RLB): Syntactically, I would be tempted to handle `tree_info` in the same
+way as the ratchet tree.  Namely, allow the committer to include it as an
+extension in the GroupInfo if they want (possibly for multiple joiners), and if
+it's not in the GroupInfo, don't say anything about how the joiner gets it.
+
 ~~~tls
 struct {
     Welcome welcome;
@@ -207,6 +218,28 @@ struct {
 Similarly, light commits, `wire_format = 0x0007`, are defined as follow.
 The commit message is extended with the `TreeSlice`, a `GroupInfo`, and
 the `decryption_node_index` for the decryption key of the path secret.
+
+> XXX(RLB): The LightCommit structure here seems unnecessarily verbose.  It seems
+> like the commit operation here is actually almost exactly the same as the join
+> operation -- the only difference is that you get the `joiner_secret` from the
+> last key schedule rather than the Welcome.
+> 
+> Note also that the function served by `decryption_node_index` here is done by
+> finding a common ancestor with the committer in the Welcome case; would be handy
+> to re-use that logic here.  
+> 
+> Given all that, I would be tempted to define a new ContentType (which could go
+> in PublicMessage or PrivateMessage) that just has a GroupInfo, and a GroupInfo
+> extension for the required HPKECiphertext.  Compared to the struct below:
+> * `commit` corresponds to the HPKECiphertext extension
+> * `tree_info` is in a TreeSlice extension (or external some unspecified way)
+> * `group_info` is the same
+> * `decryption_node_index` is computed as the common ancestor with
+>   `group_info.sender`, as in the Welcome case.
+>
+> This doesn't seem like it really changes the analysis, just ships the
+> information around differently so that it's a ligher extension (heh) and
+> compatible with PrivateMessage.
 
 ~~~tls
 struct {
@@ -301,11 +334,19 @@ for all nodes where the client does not have the full nodes.
 
 The delivery service should allow to query `TreeSlice` for proof of memberships at any point for any member in the tree.
 
+XXX(RLB): While I agree with this, it's not strictly needed with a strict
+light/full dichotomy.  Where it's interesting is for "light+" clients -- light
+clients that have authenticated some of the rest of the tree.  This seems like a
+concept worth defining; even if there is a hard dichotomy between "have the full
+tree" / not for purposes of whether you can make a commit, having a partial tree
+can let you authenticate some other members.
+
 ~~~tls
 struct {
   uint32 index;
   opaque tree_hash<V>;
-  opaque original_tree_hash<V>;
+  opaque original_tree_hash<V>; // XXX(RLB) Why do you need the OTH if you don't
+                                // have a full tree?
 } Hashes;
 
 enum {
@@ -317,21 +358,23 @@ enum {
 
 struct {
   optional<Node> node;
-  uint32: index;
+  uint32: index; // XXX(RLB) Nit: ":"
 } XNode;
 
 struct {
   XNodeType node_type;
-  select (XNode.node_typ) {
+  select (XNode.node_typ) { // XXX(RLB): "node_type"
     case xnode:  XNode xnode;
     case hashes: Hashes hashes;
   }
 } SliceNode;
 
 struct {
-  SliceNode nodes<V>;
-  uint32 own_node;
-  uint32 num_nodes;
+  SliceNode nodes<V>;   // XXX(RLB): Minor: I would probably just make separate
+                        //           vectors for nodes and hashes, vs. the
+                        //           select above.
+  uint32 own_node;      // XXX(RLB): Nit: `leaf_index`
+  uint32 num_nodes;     // XXX(RLB): Nit: `n_leaves`
 } TreeSlice;
 ~~~
 
