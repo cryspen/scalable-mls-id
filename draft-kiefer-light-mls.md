@@ -1,25 +1,5 @@
 ---
-###
-# Internet-Draft Markdown Template
-#
-# Rename this file from draft-todo-yourname-protocol.md to get started.
-# Draft name format is "draft-<yourname>-<workgroup>-<name>.md".
-#
-# For initial setup, you only need to edit the first block of fields.
-# Only "title" needs to be changed; delete "abbrev" if your title is short.
-# Any other content can be edited, but be careful not to introduce errors.
-# Some fields will be set automatically during setup if they are unchanged.
-#
-# Don't include "-00" or "-latest" in the filename.
-# Labels in the form draft-<yourname>-<workgroup>-<name>-latest are used by
-# the tools to refer to the current version; see "docname" for example.
-#
-# This template uses kramdown-rfc: https://github.com/cabo/kramdown-rfc
-# You can replace the entire file if you prefer a different format.
-# Change the file extension to match the format (.xml for XML, etc...)
-#
-###
-title: "Light MLS"
+title: "Light Clients for MLS"
 abbrev: "lmls"
 category: info
 
@@ -73,7 +53,6 @@ for light clients, making them attractive in many scenarios.
 --- middle
 
 # Introduction
-
 
 The design of MLS in {{!RFC9420}} implicitly requires all members to download
 and maintain the full MLS tree, validate the credentials and signatures of
@@ -147,6 +126,8 @@ MLS groups that support light clients must use the `light_clients` extension
 When this extension is present in the group context, all messages, except for
 application messages, MUST use public messages.
 
+TODO: Add use cases
+
 The changes are primarily on light clients.
 
 When joining a group as a light client, the client downloads the proof of memberships
@@ -155,8 +136,8 @@ The sender's proof of membership can be discarded after being checked such that 
 the client's direct path and hashes on the co-path are stored.
 
 Proposals are not processed.
-They are only stored to apply when commits use proposals by reference and to know
-the proposal sender.
+They may be stored to perform additional checks when processing commits.
+It is however not needed for light clients to store proposals.
 
 When processing a commit, the client retrieves
 
@@ -181,64 +162,46 @@ leaves, and an API to retrieve the full tree.
 
 Light MLS is a variant of MLS run by light clients.
 
-This draft defines two new `MLSMessage` types with `wire_format = 0x0006` and
-`wire_format = 0x0007`.
-
-Light welcomes, `wire_format = 0x0006`, are defined as follows.
-In particular, the `Welcome` message is extended with the `TreeSlice`.
+For light welcomes the necessary tree information can be retrieved from the delivery server, or provided
+via the `tree_info` GroupInfo extension.
 
 ~~~tls
 struct {
-    Welcome welcome;
-    TreeSlice tree_info;
-} LightWelcome;
-
-struct {
-    ProtocolVersion version = mls10;
-    WireFormat wire_format;
-    select (MLSMessage.wire_format) {
-        ...
-        case mls_light_welcome:
-            LightWelcome light_welcome;
-    };
-} MLSMessage;
+    TreeSlice tree_info<V>;
+} TreeInfo
 ~~~
 
-Similarly, light commits, `wire_format = 0x0007`, are defined as follow.
-The commit message is extended with the `TreeSlice`, a `GroupInfo`, and
-the `decryption_node_index` for the decryption key of the path secret.
+Light commit messages are defined as a new content type for the FramedContent.
+A light commit contains a GroupInfo with a LightPathSecret extension, which contains
+the commit secret for the receiving light client and the corresponding node index.
+In addition, the GroupInfo contains a TreeInfo extension with the committer's
+direct paths.
 
 ~~~tls
-struct {
-    PublicMessage commit;
-    TreeSlice tree_info;
-    GroupInfo group_info;
-    uint32 decryption_node_index;
-} LightCommit;
+enum {
+    reserved(0),
+    application(1),
+    proposal(2),
+    commit(3),
+    light_commit(4),
+    (255)
+} ContentType;
 
 struct {
-    ProtocolVersion version = mls10;
-    WireFormat wire_format;
-    select (MLSMessage.wire_format) {
-        ...
-        case mls_light_commit:
-            LightCommit light_commit;
-    };
-} MLSMessage;
+    HPKECiphertext encrypted_path_secret;
+    uint32 decryption_node_index;
+} LightPathSecret;
+
+struct {
+    GroupInfo group_info;
+} LightCommit;
 ~~~
 
 Full MLS clients do not need to implement these types.
-The delivery service builds these messages instead.
+The delivery service can build these messages instead.
 
-While the `Commit` structure stays as defined in Section 12.4 {{!RFC9420}}, the
-content is changed.
-To reduce the size of `Commit` messages, especially in large, sparse trees, the
-delivery service strips unnecessary parts of member Commits.
-See {{deploying-light-mls}} for details on the requirements on the delivery service.
-
-In the `Commit` in a `LightCommit` messages only the relevant `HPKECiphertext`
-value in the `encrypted_path_secret`, in the `UpdatePath` that is relevant
-for the receiver, is kept.
+The committer's new leaf node is not part of the LightCommit message.
+Instead, it is part of the `tree_info` extension in the GroupInfo.
 
 ## Verifying Group Validity
 A light client can not do all the checks that a client with the MLS tree can do.
@@ -305,7 +268,6 @@ The delivery service should allow to query `TreeSlice` for proof of memberships 
 struct {
   uint32 index;
   opaque tree_hash<V>;
-  opaque original_tree_hash<V>;
 } Hashes;
 
 enum {
@@ -317,12 +279,12 @@ enum {
 
 struct {
   optional<Node> node;
-  uint32: index;
+  uint32 index;
 } XNode;
 
 struct {
   XNodeType node_type;
-  select (XNode.node_typ) {
+  select (XNode.node_type) {
     case xnode:  XNode xnode;
     case hashes: Hashes hashes;
   }
@@ -330,8 +292,8 @@ struct {
 
 struct {
   SliceNode nodes<V>;
-  uint32 own_node;
-  uint32 num_nodes;
+  uint32 leaf_index;
+  uint32 n_leaves;
 } TreeSlice;
 ~~~
 
@@ -366,6 +328,16 @@ It further defines ways light clients may upgrade to a full client.
   client "silently" upgrades to full MLS with security equivalent to joining a new
   group. The client MUST perform all checks from Section 12.4.3.1 {{!RFC9420}}.
 - `any_upgrade` allows light clients to use either of the two upgrade mechanisms.
+
+### Light MLS LeafNode
+The `light_client` leaf node extension signals that a leaf node is a light client.
+The extension is an empty struct.
+
+~~~tls
+struct {
+
+} LightMlsClient;
+~~~
 
 ## Committing with a Light Client
 
