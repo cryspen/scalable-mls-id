@@ -490,6 +490,8 @@ As a corollary of Group Key Secrecy, we also obtain authentication and
 confidentiality guarantees for application messages sent and received within a group.
 
 To verify the security guarantees provided by light members, a new security analysis is needed. We have analyzed the security of the protocol using two verification tools ProVerif and F*.
+The security analysis, and design of the security mechanisms, are inspired by
+work from Alwen et al. {{?AHKM22=DOI.10.1145/3548606.3560632}}.
 
 Light MLS preserves the invariants above and thereby all the security goals of MLS
 continue to hold at full members.
