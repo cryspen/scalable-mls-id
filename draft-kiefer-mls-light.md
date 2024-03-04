@@ -1,9 +1,9 @@
 ---
 title: "Light Clients for MLS"
-abbrev: "lmls"
+abbrev: "Light MLS"
 category: info
 
-docname: draft-kiefer-light-mls-latest
+docname: draft-kiefer-mls-light-latest
 submissiontype: IETF  # also: "independent", "IAB", or "IRTF"
 number:
 date:
