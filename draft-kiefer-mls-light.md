@@ -29,6 +29,18 @@ author:
     fullname: Karthikeyan Bhargavan
     organization: Cryspen
     email: karthik.bhargavan@gmail.com
+ -  ins: R.L. Barnes
+    fullname: Richard L. Barnes
+    organization: Cisco
+    email: rlb@ipv.sx
+ -  ins: J. Alwen
+    fullname: Joël Alwen
+    organization: AWS Wickr
+    email: alwenjo@amazon.com
+ -  ins: M. Mularczyk
+    fullname: Marta Mularczyk
+    organization: AWS Wickr
+    email: mulmarta@amazon.ch
 
 normative:
 
