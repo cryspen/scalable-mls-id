@@ -35,11 +35,11 @@ author:
     email: rlb@ipv.sx
  -  ins: J. Alwen
     fullname: Joël Alwen
-    organization: Amazon
+    organization: AWS Wickr
     email: alwenjo@amazon.com
  -  ins: M. Mularczyk
     fullname: Marta Mularczyk
-    organization: Amazon
+    organization: AWS Wickr
     email: mulmarta@amazon.ch
 
 normative:
