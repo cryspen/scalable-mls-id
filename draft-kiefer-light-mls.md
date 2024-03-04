@@ -93,22 +93,13 @@ modifications to standard MLS clients and the MLS infrastructure.
 
 {::boilerplate bcp14-tagged}
 
-# MLS Groups with Light Clients
-
-An MLS group that supports light clients has two kinds of members:
-full clients that can send and receive all MLS messages, and light
-clients that cannot send commits but can otherwise participate in
-the group normally. If a light client wishes to send a commit,
-it can upgrade itself to a full client
-({{committing-with-a-light-client}}).
-
 # Terminology
 
 This document introduces the following new concepts
 
 - Tree Slice: A tree slice is the direct path from a leaf node to the root, together with the tree hashes on the co-path.
 - Proof of Membership: A proof of membership for leaf A is a tree slice that proves that leaf A is in the tree with the tree hash in the root of the tree slice.
-- Partial Commit: A partial commit is a commit that the server stripped down to
+- Light Commit: A light commit is a commit that the server stripped down to
   hold only the encrypted path secret for the receiver.
 - Light client: A light client is a client that does not know the
   MLS tree but only its own tree slice.
@@ -165,7 +156,7 @@ particular Add, Update, or Remove proposals.
 
 When processing a commit, the client retrieves
 
-- the partial commit that contains only the path secret encrypted for the client
+- the light commit that contains only the path secret encrypted for the client
 - the sender's proof of membership
 - the signed group info
 
@@ -180,6 +171,30 @@ The server MUST track the public group state together with the signed group info
 and provide endpoints for clients to retrieve light commits and light welcomes.
 Further, it SHOULD provide an API to retrieve proof of memberships for arbitrary
 leaves, and an API to retrieve the full tree.
+
+# Open Questions
+
+**Proposals:** In this document, we have assumed that light clients don't need
+to see or validate proposals.  This is clearly true for proposals that just
+modify the tree, e.g., Add/Update/Remove, but less clear for proposals such as
+PreSharedKey and GroupContextExtensions, and even less clear for custom
+proposals.  We may want to define a way that an application could enable light
+clients to verify some proposals.  A light client can verify the signature on a
+proposal given a tree slice for the signer, but more mechanism might be needed
+to allow a light client to verify that a proposal was actually included in a
+Commit.
+
+**Slimming Down Further:** We have assumed that LeafNode and GroupInfo messages
+are small enough that it's acceptable for light clients to have to download
+them.  However, these messages themselves can be large, e.g., due to large
+extensions.  It may be desireable to define lighter variants of these structs,
+for example:
+
+* Defining a variant of GroupInfo that is intended for members of the group, who
+  do not need to receive a copy of the GroupContext extensions.
+* Updating the tree hash algorithm for leaf nodes so that a light client could
+  receive and verify a subset of a leaf node (e.g. only the signature key and
+  credential)
 
 # Tree Slices
 
