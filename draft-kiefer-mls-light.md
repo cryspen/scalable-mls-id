@@ -497,15 +497,16 @@ Light MLS substantially reduces the amount of data required to join an MLS
 group, since it replaces the linear-scale ratchet tree with two log-scale
 membership proofs. Light MLS does not address the potentially linear scaling of
 Commit messages; in fact, it makes Commits slightly bigger. There are other
-approaches to reducing Commit sizes, e.g., as discussed in {{AHKM22}}.  These
-approaches can be cleanly integrated with Light MLS via the AnnotatedCommit
-structure.  {{download-cost}} summarizes the scaling of the amount of data
-that a client needs to download in order to perform various MLS operations.
+approaches to reducing Commit sizes, e.g., the SplitCommit approach in
+{{?I-D.mularczyk-mls-splitmls}}.  These approaches can be cleanly integrated
+with Light MLS via the AnnotatedCommit structure.  {{download-cost}} summarizes
+the scaling of the amount of data that a client needs to download in order to
+perform various MLS operations.
 
-| Operation       | RFC MLS | Light MLS | SA-CGKA | Light + SA-CGKA |
-|:----------------|:-------:|:---------:|:-------:|:---------------:|
-| Join            |  O(N)   | O(log N)  |   O(N)  |     O(log N)    |
-| Process Commit  |  O(N)   | O(N)      |   O(1)  |     O(log N)    |
+| Operation       | RFC MLS | Light MLS | Split Commits | Light + Split |
+|:----------------|:-------:|:---------:|:-------------:|:-------------:|
+| Join            |  O(N)   | O(log N)  | O(N)          | O(log N)      |
+| Process Commit  |  O(N)   | O(N)      | O(log N)      | O(log N)      |
 {: #download-cost title="Download scaling under protocol variations" }
 
 # Security Consideratiosn
@@ -591,6 +592,10 @@ since the annotations are basically outside the MLS envelope. ]]
 --- back
 
 # Known Issues
+
+* To realize the completely optimized performance profile discussed on
+  {{operational-considerations}}, we should define a version of AnnotatedCommit
+  that sends a SplitCommit instead of a normal Commit.
 
 * There is currently no confidentiality or authenticity provided for the
   annotations in the annotated messages, except that (a) the membership proofs
