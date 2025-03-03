@@ -52,7 +52,7 @@ informative:
 The Messaging Layer Security (MLS) protocol provides efficient asynchronous
 group key establishment for large groups with up to thousands of clients. In
 MLS, any member can commit a change to the group, and consequently, all members
-must download, validate, and maintain the full group state which can incur a
+must download, validate, and maintain the full group state, which can incur a
 significant communication and computational costs, especially when joining a
 group. This document defines an MLS extension to support "light clients" that don't
 undertake these costs. A light client cannot commit changes to the group, and
@@ -87,7 +87,7 @@ the ratchet tree and its associated algorithms, the key schedule, the secret
 tree, and application message protection. The messages sent and received by
 normal clients in the course of an MLS session are likewise unchanged. With
 proper modifications to the MLS Delivery Service, standard MLS clients can
-participate in a group with light client without any modification.
+participate in a group with light clients without any modification.
 
 The only modifications this document makes are to the local state stored at
 light clients, namely the component of MLS that manages, synchronizes, and
@@ -97,6 +97,12 @@ clients. Light clients effectively run normal MLS algorithms, but with
 just-in-time delivery of exactly the subset of the public group state needed by
 a given algorithm. We achieve lightness due to the fact that aside from initial
 tree validation and sending commits, a client only needs log-scale information.
+
+In summary, Light MLS allows light clients to obtain greater efficiency, at the
+cost of lowering the authentication guarantees they receive and losing the
+ability to make Commits.  We discuss a few scenarios that motivate this
+trade-off in {{use-cases}}.  The difference in authentication properties, in
+particular, is discussed in detail in {{security-considerations}}.
 
 # Terminology
 
@@ -136,6 +142,66 @@ As in MLS, message structures are defined using the TLS presentation syntax
 encapsulated in a signed or MAC'ed structure. So it may be more convenient for
 applications to encode these structures in application-specific encodings.
 
+# Use Cases
+
+Light MLS is intended to support use cases where MLS groups are very large, from
+thousands to millions of participants.  Application-level constraints arising
+from these use cases align well with the trade-offs introduced by Light MLS.  It
+is usually acceptable (even desirable) that only certain members are able to
+send Commit messages.  And in such large groups, clients often do not care about
+authenticating all members of the group.
+
+The following subsections outline two concrete use cases.
+
+## Large Meetings / Webinars
+
+MLS can be used to establish end-to-end encryption keys in real-time
+conferencing scenarios.  In such scenarios, a client joins the MLS group when
+they are admitted to a meeting.  With normal MLS, the client is required to
+download and validate the entire ratchet tree before being able to derive media
+encryption keys.  In meetings with a thousand or more participants, this process
+can take enough time that it introduces a noticeable delay in joining the
+meeting.  If a client joins as a light client, then they can download a
+log-sized AnnotatedWelcome message and immediately obtain the media encryption
+keys.
+
+Such a client will not have authenticated the group when they join the meeting.
+However, applications often do not display identity information in such setting
+anyway.  In "webinar" settings, it is common attendee identities to be visible
+only to panelists and administrators, not to other attendees.  Light MLS allows
+MLS to align with this privacy property.  If attendees join as light clients,
+they can be provided with membership proofs for attendees whom they are
+authorized to see, and not for others.  Even in settings where attendees can all
+see each others' identities, user interface constraints usually cause only a
+small fraction of the attendee list to be visible at one time, so it is natural
+to load the tree dynamically as the client needs access to the authenticated
+identities of specific other clients.
+
+The constraint on clients sending Commits is also natural here.  In such large
+gatherings, there are usually administrators who are authorized to see the
+identities of all participants and control who is in the group, and conversely,
+there are certain actions that are not available to non-admin participants.  So
+it makes sense for the administrators to use full clients that are able to make
+Commits to implement the actions they are authorized to take, and for more
+limited clients to be unable to make commits.
+
+## Broadcast sessions
+
+Internet streaming platforms frequently host broadcasts with large numbers of
+viewers, but the entities providing these broadcasts might like to ensure that
+the streaming platform cannot see the streamed content.  For example, the Media
+over QUIC Transport protocol, designed to support streaming use cases, states as
+a goal ensuring that "the media content itself remains opaque and private" from
+the relays involved in its distribution {{?I-D.ietf-moq-transport}}.
+
+In such settings, the light client / full client roles align with the viewer /
+owner roles, respectively.  Viewers do not care about the identities of other
+viewers (at most, they care that the stream comes from an authentic source) and
+they aren't authorized to do anything in MLS besides join the group.  Viewers
+are also typically in more constrained situations than the source of a stream.
+So the reduced resource requirements are well worth the loss of full-group
+authentication and the ability to Commit.
+
 # Protocol Overview
 
 A light client does not receive or validate a full copy of the ratchet tree for
@@ -173,16 +239,14 @@ Client A        Service               Client B   Client C   Client D
    |                |                     |          |          |
    |                | SenderAuthMessage   |          |          |
    |                | = PrivateMessage    |          |          |
-   |                |   + Proof(D)        |          |          |
-   |                +------------------------------------------>|
-   |                |                     |          |          |
-   |                | Proof(C)            |          |          |
+   |                |   + Proof(A)        |          |          |
    |                +-------------------->|          |          |
+   |                +------------------------------------------>|
    |                |                     |          |          |
 ~~~
 {: #fig-overview title="Overview of Light MLS" }
 
-{{fig-overview}} illustrates the three main changes introduced by Light MLS:
+{{fig-overview}} illustrates the main changes introduced by Light MLS:
 
 1. When a light client is added to the group, they are provided an
    AnnotatedWelcome message, which comprises a normal Welcome message plus
@@ -198,9 +262,6 @@ Client A        Service               Client B   Client C   Client D
    they are extended with a membership proofs so that light clients can
    authenticate the sender's membership in the group.
 
-4. Light clients can download membership proofs to authenticate individual other
-   users. Here B authenticates C.
-
 In this example, we have shown the required annotations being added by the DS.
 This allows full clients to behave as they would in normal MLS, but requires
 that the DS maintain a copy of the group's ratchet tree. It is also possible
@@ -215,7 +276,7 @@ can, however, verify that these proposals were included in a given Commit. And
 they need to see proposals such as PreSharedKey or GroupContextExtensions so
 that they can update their state appropriately.
 
-Depending on how light MLS is deployed, a client might need to inform the DS or
+Depending on how Light MLS is deployed, a client might need to inform the DS or
 other members of its status (light or full), so that the proper annotations can
 be generated when it is light. It is harmless for a full client to receive an
 AnnotatedCommit; the annotations can simply be ignored.
@@ -225,7 +286,7 @@ AnnotatedCommit; the annotations can simply be ignored.
 A light client can upgrade to being a full client at any time by downloading the
 full ratchet tree; a full client can downgrade by deleting its local copy of the
 ratchet tree.  Before a light client uses a copy of the ratchet tree to upgrade
-ot being a full client, it MUST verify the integrity of the ratchet tree in the
+to being a full client, it MUST verify the integrity of the ratchet tree in the
 same way it would when joining as a full client, following the steps in
 {{Section 12.4.3.1 of RFC9420}}.
 
@@ -253,7 +314,7 @@ A membership proof for a leaf node comprises:
 
 ~~~
 struct {
-    opaque hash_value;
+    opaque hash_value<V>;
 } CopathHash;
 
 struct {
@@ -292,7 +353,7 @@ node and a proof of its inclusion in the tree.
 struct {
     T message;
     MembershipProof sender_membership_proof;
-} SenderAuthenticatedMessage;
+} SenderAuthenticatedMessage<T>;
 ~~~
 
 Before using the `sender_membership_proof` to verify the included message, a client
@@ -309,7 +370,7 @@ proofs for the sender and the joiner (i.e., the recipient of the message).
 
 ~~~ tls-syntax
 struct {
-    SenderAuthenticated<Welcome> welcome;
+    SenderAuthenticatedMessage<Welcome> welcome;
     MembershipProof joiner_membership_proof;
 } AnnotatedWelcome;
 ~~~
@@ -317,8 +378,8 @@ struct {
 The fields in the AnnotatedWelcome have the following semantics:
 
 `welcome`:
-: A MLSMessage containing PrivateMessage or PublicMessage with `content_type`
-`commit`, together with a membership proof for the sender.
+: A Welcome message, together with a membership proof for the sender relative to
+the ratchet tree specified in the Welcome.
 
 `joiner_membership_proof`:
 : A proof of the receipient's membership in the ratchet tree specified in the
@@ -383,7 +444,7 @@ The fields in the AnnotatedCommit have the following semantics:
 
 `commit`:
 : An MLSMessage containing PrivateMessage or PublicMessage with `content_type`
-`commit`, together with a membership proof for the sender.
+`commit`.
 
 `sender_membership_proof`:
 : A membership proof for the sender of the Commit relative to the tree for the
@@ -415,8 +476,8 @@ an unauthenticated party because the tree hash is authenticated by the
 
 A light client processes an AnnotatedCommit in the following way:
 
-1. Verify that the `sender_membership_proof` in the `commit` field is valid
-   relative to the group's current tree hash.
+1. Verify that the `sender_membership_proof` in the `commit` field, if present,
+   is valid relative to the group's current tree hash.
 
 2. Verify that the `sender_membership_proof_after` and
    `receiver_membership_proof_after` reference the same tree, and that they are
@@ -426,17 +487,18 @@ A light client processes an AnnotatedCommit in the following way:
    RFC9420}}, with the following modifications:
 
   * When validating a FramedContent with `sender_type` set to `member`, the
-    signature public key is taken from the LeafNode in the
-    `sender_membership_proof` tree slice. The `leaf_index` field of the
-    `group_info` object MUST be equal to the `leaf_index` field of the
-    `sender_membership_proof`.
+    `sender_membership_proof` field MUST be present, and the signature public
+    key is taken from the LeafNode in the `sender_membership_proof` tree slice.
+    The `leaf_index` field of the `Sender` object MUST be equal to the
+    `leaf_index` field of the `sender_membership_proof`.
 
     * If the `sender_type` is set to `new_member_commit` (the only other valid
       value), then the signature public key is looked up in the included Add
       proposal, as normal. In this case, there is no further validation of the
       `leaf_index` field of of the `sender_membership_proof`.
 
-  * The proposal list validation step is omitted.
+  * The proposal list validation step is omitted, because a light client doesn't
+    have sufficient information to check all of the validation rules.
 
   * When applying proposals, only the proposals that do not modify the tree are
     applied, in particular, PreSharedKey and GroupContextExtensions proposals.
@@ -485,6 +547,11 @@ As noted above, this can be accomplished either by the sender creating a
 SenderAuthenticatedMessage, or by the DS adding the relevant membership proof
 while the message is in transit.
 
+Note that encapsulating a message as a SenderAuthenticatedMessage leaks
+information about the sender to the DS, including the sender's index in the tree
+and the sender's LeafNode.  See {{metadata-privacy}} for more discussion of
+metadata privacy.
+
 # Operational Considerations
 
 The major operational challenge in deploying Light MLS is ensuring that light
@@ -501,7 +568,8 @@ approaches to reducing Commit sizes, e.g., the SplitCommit approach in
 {{?I-D.mularczyk-mls-splitmls}}.  These approaches can be cleanly integrated
 with Light MLS via the AnnotatedCommit structure.  {{download-cost}} summarizes
 the scaling of the amount of data that a client needs to download in order to
-perform various MLS operations.
+perform various MLS operations.  Sending a Commit requires linear-scale work in
+any case.
 
 | Operation       | RFC MLS | Light MLS | Split Commits | Light + Split |
 |:----------------|:-------:|:---------:|:-------------:|:-------------:|
@@ -509,10 +577,10 @@ perform various MLS operations.
 | Process Commit  |  O(N)   | O(N)      | O(log N)      | O(log N)      |
 {: #download-cost title="Download scaling under protocol variations" }
 
-# Security Consideratiosn
+# Security Considerations
 
 The MLS protocol in {{!RFC9420}} has a number of security analyses attached. To
-describe the security of light MLS and how it relates to the security of full
+describe the security of Light MLS and how it relates to the security of full
 MLS we summarize the following main high-level guarantees of MLS as follows:
 
 - **Membership Agreement**: If a client B has a local group state for group G in
@@ -545,7 +613,7 @@ As a corollary of Group Key Secrecy, we also obtain authentication and
 confidentiality guarantees for application messages sent and received within a
 group.
 
-To verify the security guarantees provided by light clients, a new security
+To verify the security guarantees provided to light clients, a new security
 analysis was needed. We have analyzed the security of the protocol using two
 verification tools ProVerif and F*. The security analysis, and design of the
 security mechanisms, are inspired by work from Alwen et al.
@@ -576,18 +644,51 @@ tree:
   of this tree. That is, if the attacker knows K, then the signature or
   decryption keys at one of the leaves must have been compromised.
 
+Note that the Light Membership Agreement property holds irrespective of whether
+B has verified a membership proof from A.  The membership proofs in this
+protocol are thus more about providing precise source authentication within the
+group, rather than simply proving membership in the group.  Simply knowing the
+group's symmetric secrets suffices for the latter.
+
 Another technical caveat is that since light members do not have the full tree,
 they cannot validate the uniqueness of all HPKE and signature keys in the tree,
 as required by RFC MLS. The exact security implications of removing this
-uniqueness check is not clear but is not expected to be significant.
+uniqueness check is not clear but is not expected to be significant.  In a group
+where full clients are honest, there is no practical difference, since a full
+client will verify that all of the required uniqness properties hold before
+issuing a Commit.  The main risk is that a malicious full client could cause a
+light client to accept a tree hash representing a tree with duplicate keys.
+
+## Metadata Privacy
+
+The protocol described in this document assumes that the DS is trusted to know
+information about the group's ratchet tree.  The scenario described in
+{{protocol-overview}} assumes that the DS is maintaining a view of the ratchet
+tree and distributing appropriate portions of it to clients.  In fact, if the DS
+is to generate membership proofs to accompany PrivateMessage messages, then it
+will need to know the index of the sender in the tree, information that is
+normally encrypted as part of the SenderData.
+
+It is possible to operate this protocol in a more restrictive mode, where
+Commits are sent as PrivateMessage objects and the committer generates the
+required annotations for any light clients in the group.  However, because there
+is no confidentiality protection for the annotations, they will leak information
+to the DS about the ratchet tree.
+
+Fixing this leakage would require changes to logic at the committer and light
+clients.  The annotations attached to a Welcome message could be sent as
+GroupInfo extensions; effectively a partial version of the `ratchet_tree`
+extension.  The annotations attached to a Commit could be moved inside the
+PrivateMessage content, and the receiver signature validation logic updated to
+use the public key in the attached membership proof to validate the message
+signature.
+
+Thus, while a more metadata-private mode could be added to this protocol, it has
+been omitted for now in the interest of avoiding changes to full endpoints.
 
 # IANA Considerations
 
 This document makes no request of IANA.
-
-[[ NOTE: We could registere new WireFormat values for AnnotatedCommit and
-AnnotatedWelcome. It's not clear that this is necessary or useful, though,
-since the annotations are basically outside the MLS envelope. ]]
 
 --- back
 
@@ -596,14 +697,6 @@ since the annotations are basically outside the MLS envelope. ]]
 * To realize the completely optimized performance profile discussed on
   {{operational-considerations}}, we should define a version of AnnotatedCommit
   that sends a SplitCommit instead of a normal Commit.
-
-* There is currently no confidentiality or authenticity provided for the
-  annotations in the annotated messages, except that (a) the membership proofs
-  are matched against the appropriate tree hashes, and (b) the `tree_hash_after`
-  and `resolution_index` fields are authenticated by the `confirmation_tag` in a
-  Commit (the latter rather indirectly). It could be useful to be able to make
-  the annotations private within a group, especially in cases where tree
-  information is not otherwise available to the DS.
 
 * There is no signaling within the group of whether any members are light
   clients, and if so which ones. This was omitted because it didn't seem
